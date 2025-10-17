@@ -1,4 +1,4 @@
-# Tech Stack — PixelMage
+# Tech Stack — Banana Universe
 
 **Version:** 3.0 (Supabase Architecture)  
 **Last Updated:** January 2025  

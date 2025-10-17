@@ -83,7 +83,7 @@ cd PixelMage
 
 2. **Open the project:**
 ```bash
-open noname_banana.xcodeproj
+open BananaUniverse.xcodeproj
 ```
 
 3. **Configure Supabase:**
@@ -112,7 +112,7 @@ Cmd + R
 ## 📱 App Structure
 
 ```
-PixelMage/
+BananaUniverse/
 ├── App/                    # Main app entry point
 ├── Core/                   # Core components and services
 │   ├── Components/         # Reusable UI components

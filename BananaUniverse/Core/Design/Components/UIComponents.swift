@@ -179,6 +179,7 @@ struct AppCard<Content: View>: View {
     let onTap: (() -> Void)?
     
     @State private var isPressed = false
+    @Environment(\.colorScheme) var colorScheme
     
     init(
         onTap: (() -> Void)? = nil,
@@ -224,7 +225,7 @@ struct AppCard<Content: View>: View {
             .padding(DesignTokens.Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .fill(DesignTokens.Surface.primary(.light))
+                    .fill(DesignTokens.Surface.primary(colorScheme))
                     .designShadow(DesignTokens.Shadow.md)
             )
     }
@@ -376,6 +377,7 @@ struct ToastNotification: View {
     let message: String
     let type: ToastType
     @Binding var isPresented: Bool
+    @Environment(\.colorScheme) var colorScheme
     
     enum ToastType {
         case success
@@ -407,7 +409,7 @@ struct ToastNotification: View {
             
             Text(message)
                 .font(DesignTokens.Typography.callout)
-                .foregroundColor(DesignTokens.Text.primary(.light))
+                .foregroundColor(DesignTokens.Text.primary(colorScheme))
                 .multilineTextAlignment(.leading)
             
             Spacer()
@@ -415,7 +417,7 @@ struct ToastNotification: View {
         .padding(DesignTokens.Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill(DesignTokens.Surface.primary(.light))
+                .fill(DesignTokens.Surface.primary(colorScheme))
                 .designShadow(DesignTokens.Shadow.lg)
         )
         .padding(.horizontal, DesignTokens.Spacing.md)

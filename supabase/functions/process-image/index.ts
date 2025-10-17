@@ -15,6 +15,7 @@ interface ProcessImageRequest {
 interface ProcessImageResponse {
   success: boolean;
   processed_image_url?: string;
+  job_id?: string; // Database job ID for tracking
   error?: string;
   rate_limit_info?: {
     requests_today: number;
@@ -170,7 +171,17 @@ Deno.serve(async (req: Request) => {
       });
     
     // ============================================
-    // 6. CALL FAL.AI DIRECTLY (STEVE JOBS STYLE!)
+    // 6. GENERATE JOB ID & TRACK START TIME
+    // ============================================
+    
+    // Generate unique job ID for database tracking
+    const jobId = crypto.randomUUID();
+    const processingStartTime = Date.now();
+    
+    console.log(`📋 [STEVE-JOBS] Job ID: ${jobId}`);
+    
+    // ============================================
+    // 7. CALL FAL.AI DIRECTLY (STEVE JOBS STYLE!)
     // ============================================
     
     console.log('🤖 [STEVE-JOBS] Calling Fal.AI directly...');
@@ -216,7 +227,7 @@ Deno.serve(async (req: Request) => {
     const processedImageUrl = falResult.images[0].url;
     
     // ============================================
-    // 7. SAVE PROCESSED IMAGE TO STORAGE
+    // 8. SAVE PROCESSED IMAGE TO STORAGE
     // ============================================
     
     console.log('💾 [STEVE-JOBS] Saving processed image to storage...');
@@ -233,7 +244,7 @@ Deno.serve(async (req: Request) => {
     
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('pixelmage-images-prod')
+      .from('noname-banana-images-prod')
       .upload(storagePath, imageBuffer, {
         contentType: 'image/jpeg',
         upsert: true
@@ -245,7 +256,7 @@ Deno.serve(async (req: Request) => {
     
     // Generate signed URL for the processed image
     const { data: urlData, error: urlError } = await supabase.storage
-      .from('pixelmage-images-prod')
+      .from('noname-banana-images-prod')
       .createSignedUrl(storagePath, 604800); // 7 days
     
     if (urlError || !urlData?.signedUrl) {
@@ -255,12 +266,91 @@ Deno.serve(async (req: Request) => {
     console.log('✅ [STEVE-JOBS] Processed image saved:', urlData.signedUrl);
     
     // ============================================
-    // 8. RETURN SUCCESS RESPONSE
+    // 9. PERSIST JOB TO DATABASE
+    // ============================================
+    
+    const processingEndTime = Date.now();
+    const processingTimeSeconds = Math.floor((processingEndTime - processingStartTime) / 1000);
+    const now = new Date().toISOString();
+    
+    console.log('💾 [STEVE-JOBS] Saving job to database...');
+    console.log('🔍 [STEVE-JOBS] User identifier:', userIdentifier);
+    console.log('🔍 [STEVE-JOBS] User type:', userType);
+    
+    // Test database connection and RLS policies
+    console.log('🔍 [STEVE-JOBS] Testing database connection...');
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('jobs')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('❌ [STEVE-JOBS] Database connection test failed:', testError);
+      } else {
+        console.log('✅ [STEVE-JOBS] Database connection test passed');
+      }
+    } catch (testException) {
+      console.error('❌ [STEVE-JOBS] Database connection test exception:', testException);
+    }
+    
+    try {
+      const jobRecord = {
+        id: jobId,
+        user_id: userType === 'authenticated' ? userIdentifier : null,
+        device_id: userType === 'anonymous' ? userIdentifier : null,
+        model: 'nano-banana-edit',
+        status: 'completed',
+        input_url: image_url,
+        output_url: storagePath,
+        options: {
+          prompt: prompt,
+          timestamp: timestamp,
+          fal_image_url: processedImageUrl,
+          processing_time_seconds: processingTimeSeconds
+        },
+        created_at: now,
+        completed_at: now,
+        updated_at: now,
+        processing_time_seconds: processingTimeSeconds
+      };
+      
+      console.log('🔍 [STEVE-JOBS] Job record to insert:', JSON.stringify(jobRecord, null, 2));
+      
+      const { data: insertData, error: dbError } = await supabase
+        .from('jobs')
+        .insert(jobRecord)
+        .select();
+      
+      if (dbError) {
+        // Log error but don't fail the request - image is already in storage
+        console.error('❌ [STEVE-JOBS] Database insert failed:', dbError);
+        console.error('❌ [STEVE-JOBS] Database error details:', JSON.stringify(dbError, null, 2));
+        console.error('❌ [STEVE-JOBS] Error code:', dbError.code);
+        console.error('❌ [STEVE-JOBS] Error message:', dbError.message);
+        console.error('❌ [STEVE-JOBS] Error hint:', dbError.hint);
+        console.error('⚠️ [STEVE-JOBS] Image saved but not in database. Job ID:', jobId);
+        // Consider adding to a retry queue here in production
+      } else {
+        console.log('✅ [STEVE-JOBS] Job saved to database successfully:', jobId);
+        console.log('✅ [STEVE-JOBS] Insert data returned:', JSON.stringify(insertData, null, 2));
+        console.log('✅ [STEVE-JOBS] Job record inserted with user_id:', jobRecord.user_id, 'device_id:', jobRecord.device_id);
+      }
+    } catch (dbException: any) {
+      // Catch any unexpected errors during DB insert
+      console.error('❌ [STEVE-JOBS] Database exception:', dbException);
+      console.error('❌ [STEVE-JOBS] Exception details:', JSON.stringify(dbException, null, 2));
+      console.error('⚠️ [STEVE-JOBS] Continuing despite DB error. Job ID:', jobId);
+    }
+    
+    // ============================================
+    // 10. RETURN SUCCESS RESPONSE
     // ============================================
     
     const response: ProcessImageResponse = {
       success: true,
       processed_image_url: urlData.signedUrl,
+      job_id: jobId,
       rate_limit_info: {
         requests_today: requestsToday + 1,
         limit: dailyLimit,

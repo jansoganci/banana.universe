@@ -21,7 +21,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C5B91B622E9C4E54000CA05D /* noname_banana */ = {
+		C5B91B622E9C4E54000CA05D /* BananaUniverse */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BananaUniverse;
 			sourceTree = "<group>";
@@ -49,7 +49,7 @@
 		C5B91B572E9C4E54000CA05D = {
 			isa = PBXGroup;
 			children = (
-				C5B91B622E9C4E54000CA05D /* noname_banana */,
+				C5B91B622E9C4E54000CA05D /* BananaUniverse */,
 				C5B91B612E9C4E54000CA05D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -78,7 +78,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C5B91B622E9C4E54000CA05D /* noname_banana */,
+				C5B91B622E9C4E54000CA05D /* BananaUniverse */,
 			);
 			name = BananaUniverse;
 			packageProductDependencies = (
@@ -109,7 +109,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C5B91B5B2E9C4E54000CA05D /* Build configuration list for PBXProject "noname_banana" */;
+			buildConfigurationList = C5B91B5B2E9C4E54000CA05D /* Build configuration list for PBXProject "BananaUniverse" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -351,7 +351,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C5B91B5B2E9C4E54000CA05D /* Build configuration list for PBXProject "noname_banana" */ = {
+		C5B91B5B2E9C4E54000CA05D /* Build configuration list for PBXProject "BananaUniverse" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C5B91B692E9C4E56000CA05D /* Debug */,

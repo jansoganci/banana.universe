@@ -18,7 +18,7 @@ CREATE POLICY "Service role full access uploads"
 ON storage.objects FOR ALL
 TO service_role
 USING (
-    bucket_id = 'pixelmage-images-prod' AND
+    bucket_id = 'noname-banana-images-prod' AND
     name LIKE 'uploads/%'
 );
 
@@ -27,7 +27,7 @@ CREATE POLICY "Service role full access processed"
 ON storage.objects FOR ALL
 TO service_role
 USING (
-    bucket_id = 'pixelmage-images-prod' AND
+    bucket_id = 'noname-banana-images-prod' AND
     name LIKE 'processed/%'
 );
 
@@ -36,6 +36,6 @@ CREATE POLICY "Public read processed"
 ON storage.objects FOR SELECT
 TO public
 USING (
-    bucket_id = 'pixelmage-images-prod' AND
+    bucket_id = 'noname-banana-images-prod' AND
     name LIKE 'processed/%'
 );
