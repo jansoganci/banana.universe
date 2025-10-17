@@ -29,7 +29,7 @@ struct HistoryItemRow: View {
         }) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 // Thumbnail
-                AsyncImage(url: item.thumbnailUrl) { phase in
+                AsyncImage(url: item.thumbnailURL) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -57,7 +57,7 @@ struct HistoryItemRow: View {
                 .frame(width: 80, height: 80)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm))
                 .accessibilityHidden(true)
-                .id(item.thumbnailUrl?.absoluteString ?? item.id)
+                .id(item.thumbnailURL?.absoluteString ?? item.id)
                 
                 // Info Section
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {

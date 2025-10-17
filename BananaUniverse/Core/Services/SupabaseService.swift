@@ -64,13 +64,13 @@ class SupabaseService: ObservableObject {
         
         // Get user state for path organization
         let userState = HybridAuthService.shared.userState
-        let userOrDeviceId = userState.identifier
-        let path = "uploads/\(userOrDeviceId)/\(finalFileName)"
+        let userOrDeviceID = userState.identifier
+        let path = "uploads/\(userOrDeviceID)/\(finalFileName)"
         
         print("🔍 [SupabaseService] Upload path: \(path)")
         print("🔍 [SupabaseService] Image data size: \(imageData.count) bytes")
         print("🔍 [SupabaseService] User state: \(userState)")
-        print("🔍 [SupabaseService] User/Device ID: \(userOrDeviceId)")
+        print("🔍 [SupabaseService] User/Device ID: \(userOrDeviceID)")
         
         // Debug: Check current session and JWT
         do {
@@ -120,12 +120,12 @@ class SupabaseService: ObservableObject {
     /// Works for both authenticated and anonymous users
     /// Returns processed image URL directly - no polling needed!
     func processImageSteveJobsStyle(
-        imageUrl: String,
+        imageURL: String,
         prompt: String,
         options: [String: Any] = [:]
     ) async throws -> SteveJobsProcessResponse {
         print("🍎 [STEVE-JOBS] processImageSteveJobsStyle called")
-        print("🔗 [STEVE-JOBS] Image URL: \(imageUrl)")
+        print("🔗 [STEVE-JOBS] Image URL: \(imageURL)")
         print("💬 [STEVE-JOBS] Prompt: \(prompt)")
         
         // Get user state from hybrid auth service
@@ -139,7 +139,7 @@ class SupabaseService: ObservableObject {
         
         // Prepare request body
         var body: [String: Any] = [
-            "image_url": imageUrl,
+            "image_url": imageURL,
             "prompt": prompt
         ]
         
@@ -178,7 +178,7 @@ class SupabaseService: ObservableObject {
             
             if response.success {
                 print("✅ [STEVE-JOBS] Processing completed successfully!")
-                print("🔗 [STEVE-JOBS] Processed image URL: \(response.processedImageUrl ?? "nil")")
+                print("🔗 [STEVE-JOBS] Processed image URL: \(response.processedImageURL ?? "nil")")
                 return response
             } else {
                 print("❌ [STEVE-JOBS] Processing failed: \(response.error ?? "Unknown error")")
@@ -346,11 +346,11 @@ class SupabaseService: ObservableObject {
     /// Works for both authenticated and anonymous users
     func processImageDataV2(
         model: String,
-        imageUrl: String,
+        imageURL: String,
         options: [String: Any] = [:]
     ) async throws -> JobSubmissionResponse {
         print("🔍 [SupabaseService V2] processImageDataV2 called with model: \(model)")
-        print("🔗 [SupabaseService V2] Image URL: \(imageUrl)")
+        print("🔗 [SupabaseService V2] Image URL: \(imageURL)")
         
         // Check if user has credits (works for both authenticated and anonymous)
         guard await HybridCreditManager.shared.hasCredits() else {
@@ -373,7 +373,7 @@ class SupabaseService: ObservableObject {
         // Use image URL directly (no base64 conversion needed)
         var body: [String: Any] = [
             "model": model,
-            "image_url": imageUrl,
+            "image_url": imageURL,
             "options": options
         ]
         
@@ -783,13 +783,13 @@ struct AIProcessResponse: Codable {
 // 🍎 STEVE JOBS STYLE RESPONSE MODEL
 struct SteveJobsProcessResponse: Codable {
     let success: Bool
-    let processedImageUrl: String?
+    let processedImageURL: String?
     let error: String?
     let rateLimitInfo: RateLimitInfo?
     
     enum CodingKeys: String, CodingKey {
         case success
-        case processedImageUrl = "processed_image_url"
+        case processedImageURL = "processed_image_url"
         case error
         case rateLimitInfo = "rate_limit_info"
     }
@@ -874,8 +874,8 @@ struct JobRecord: Codable, Identifiable {
     let deviceId: String?
     let model: String
     let status: String
-    let inputUrl: String?
-    let outputUrl: String?
+    let inputURL: String?
+    let outputURL: String?
     let options: JobOptions?
     let errorMessage: String?
     let falRequestId: String?
@@ -890,8 +890,8 @@ struct JobRecord: Codable, Identifiable {
         case userId = "user_id"
         case deviceId = "device_id"
         case model, status
-        case inputUrl = "input_url"
-        case outputUrl = "output_url"
+        case inputURL = "input_url"
+        case outputURL = "output_url"
         case options
         case errorMessage = "error_message"
         case falRequestId = "fal_request_id"

@@ -48,7 +48,7 @@ class LibraryViewModel: ObservableObject {
     @Published var showingDeleteConfirmation = false
     @Published var itemToDelete: HistoryItem?
     @Published var isDownloading = false
-    @Published var downloadingItemId: String?
+    @Published var downloadingItemID: String?
     
     // Services
     private let supabaseService: SupabaseService
@@ -122,18 +122,18 @@ class LibraryViewModel: ObservableObject {
             for job in jobs {
                 guard let completedAt = job.completedAt else { continue }
                 
-                let thumbnailUrl = job.outputUrl != nil ? await generateSignedURL(from: job.outputUrl!) : nil
-                let resultUrl = job.outputUrl != nil ? await generateSignedURL(from: job.outputUrl!) : nil
+                let thumbnailURL = job.outputURL != nil ? await generateSignedURL(from: job.outputURL!) : nil
+                let resultURL = job.outputURL != nil ? await generateSignedURL(from: job.outputURL!) : nil
                 
                 let historyItem = HistoryItem(
                     id: job.id.uuidString,
-                    thumbnailUrl: thumbnailUrl,
+                    thumbnailURL: thumbnailURL,
                     effectTitle: extractEffectTitle(from: job),
                     effectId: job.model,
                     status: mapJobStatus(job.status),
                     createdAt: completedAt,
-                    resultUrl: resultUrl,
-                    originalImageKey: job.inputUrl
+                    resultURL: resultURL,
+                    originalImageKey: job.inputURL
                 )
                 newHistoryItems.append(historyItem)
             }
@@ -291,26 +291,26 @@ class LibraryViewModel: ObservableObject {
     // MARK: - Download Functionality
     
     func downloadImage(_ item: HistoryItem) async {
-        guard let resultUrl = item.resultUrl else {
+        guard let resultURL = item.resultURL else {
             print("❌ [LibraryViewModel] No result URL available for download")
             return
         }
         
         // Set loading state
         isDownloading = true
-        downloadingItemId = item.id
+        downloadingItemID = item.id
         
         print("📥 [LibraryViewModel] Starting download for: \(item.effectTitle)")
         
         do {
             // Download image data
-            let (data, response) = try await URLSession.shared.data(from: resultUrl)
+            let (data, response) = try await URLSession.shared.data(from: resultURL)
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 print("❌ [LibraryViewModel] Failed to download image: Invalid response")
                 isDownloading = false
-                downloadingItemId = nil
+                downloadingItemID = nil
                 return
             }
             
@@ -328,7 +328,7 @@ class LibraryViewModel: ObservableObject {
         
         // Clear loading state
         isDownloading = false
-        downloadingItemId = nil
+        downloadingItemID = nil
     }
     
     private func saveImageToPhotos(data: Data) async throws {

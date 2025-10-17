@@ -11,12 +11,12 @@ import Foundation
 // MARK: - History Item Model
 struct HistoryItem: Identifiable, Codable {
     let id: String
-    let thumbnailUrl: URL?
+    let thumbnailURL: URL?
     let effectTitle: String
     let effectId: String
     let status: JobStatus
     let createdAt: Date
-    let resultUrl: URL?
+    let resultURL: URL?
     let originalImageKey: String?
     
     var relativeDate: String {

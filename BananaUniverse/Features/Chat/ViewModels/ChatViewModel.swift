@@ -67,7 +67,7 @@ class ChatViewModel: ObservableObject {
     @Published var dailyQuotaLimit = 3 // Free users get 3 free uses per day
     @Published var currentPrompt: String? = nil // Current prompt for processing
     @Published var messages: [ChatMessage] = [] // Chat messages for displaying results
-    @Published var currentJobId: String? = nil // Current job being processed
+    @Published var currentJobID: String? = nil // Current job being processed
     
     // Computed property for backward compatibility
     var isProcessing: Bool {
@@ -164,7 +164,7 @@ class ChatViewModel: ObservableObject {
     }
     
     // MARK: - Image Processing
-    func processSelectedImage() {
+    func processSelectedImage() async {
         guard let image = selectedImage else {
             errorMessage = "No image selected"
             return
@@ -178,16 +178,14 @@ class ChatViewModel: ObservableObject {
             }
         }
         
-        Task {
-            await processImage(image)
-        }
+        await processImage(image)
     }
     
     private func processImage(_ image: UIImage) async {
         jobStatus = .submitting
         errorMessage = nil
         uploadProgress = 0.0
-        currentJobId = nil
+        currentJobID = nil
         
         // Add user message with the prompt and image
         addUserMessage(
@@ -206,8 +204,8 @@ class ChatViewModel: ObservableObject {
             
             // Step 2: Upload image to Supabase Storage first
             print("📤 [ChatViewModel] Uploading image to storage...")
-            let imageUrl = try await supabaseService.uploadImageToStorage(imageData: imageData)
-            print("✅ [ChatViewModel] Image uploaded: \(imageUrl)")
+            let imageURL = try await supabaseService.uploadImageToStorage(imageData: imageData)
+            print("✅ [ChatViewModel] Image uploaded: \(imageURL)")
             
             uploadProgress = 0.2
             
@@ -228,24 +226,24 @@ class ChatViewModel: ObservableObject {
             
             // Call the Steve Jobs style function - returns result directly!
             let steveJobsResult = try await supabaseService.processImageSteveJobsStyle(
-                imageUrl: imageUrl,
+                imageURL: imageURL,
                 prompt: originalPrompt
             )
             
             uploadProgress = 0.8
             
             print("✅ [ChatViewModel] Steve Jobs processing completed!")
-            print("🔗 [ChatViewModel] Processed image URL: \(steveJobsResult.processedImageUrl ?? "nil")")
+            print("🔗 [ChatViewModel] Processed image URL: \(steveJobsResult.processedImageURL ?? "nil")")
             
             // Step 4: Download processed image directly (no polling needed!)
-            guard let processedImageUrl = steveJobsResult.processedImageUrl else {
+            guard let processedImageURL = steveJobsResult.processedImageURL else {
                 throw ChatError.invalidResult
             }
             
             uploadProgress = 0.9
             
             // Download the processed image
-            let url = URL(string: processedImageUrl)!
+            let url = URL(string: processedImageURL)!
             let (processedImageData, _) = try await URLSession.shared.data(from: url)
             
             guard let processedUIImage = UIImage(data: processedImageData) else {
@@ -399,7 +397,7 @@ class ChatViewModel: ObservableObject {
         currentPrompt = nil
         messages = []
         jobStatus = .idle
-        currentJobId = nil
+        currentJobID = nil
     }
     
     func clearError() {

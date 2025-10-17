@@ -24,6 +24,7 @@ struct ToolCard: View {
                     .font(DesignTokens.Typography.headline)
                     .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                     .lineLimit(2)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer()
@@ -74,7 +75,7 @@ struct ToolCard: View {
             tool: Tool(
                 id: "remove_object",
                 title: "Remove Object from Image",
-                imageUrl: nil,
+                imageURL: nil as URL?,
                 category: "main_tools",
                 requiresPro: false,
                 modelName: "lama-cleaner",
@@ -89,7 +90,7 @@ struct ToolCard: View {
             tool: Tool(
                 id: "linkedin_headshot",
                 title: "LinkedIn Headshot",
-                imageUrl: nil,
+                imageURL: nil as URL?,
                 category: "pro_looks",
                 requiresPro: true,
                 modelName: "professional-headshot",

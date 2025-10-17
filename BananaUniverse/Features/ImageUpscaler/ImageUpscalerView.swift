@@ -389,7 +389,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     ImageUpscalerView(tool:     Tool(
         id: "image_upscaler",
         title: "Image Upscaler",
-        imageUrl: nil,
+                imageURL: nil as URL?,
         category: "restoration",
         requiresPro: false,
         modelName: "upscale",

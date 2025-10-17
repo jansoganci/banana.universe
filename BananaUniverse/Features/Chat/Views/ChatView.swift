@@ -161,10 +161,14 @@ struct ChatContainerView: View {
         generator.impactOccurred()
         
         // Send message with original prompt
-        viewModel.processSelectedImage()
-        
-        // Clear input field (WhatsApp-style)
-        viewModel.currentPrompt = nil
+        Task {
+            await viewModel.processSelectedImage()
+            
+            // Clear input field (WhatsApp-style) - only after processing completes
+            await MainActor.run {
+                viewModel.currentPrompt = nil
+            }
+        }
         
         // Dismiss keyboard
         isInputFocused = false

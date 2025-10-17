@@ -46,8 +46,8 @@ struct LibraryView: View {
                         onRefresh: { await viewModel.refreshHistory() },
                         onItemTap: { item in viewModel.navigateToResult(item) },
                         onSelect: { item in
-                            if let resultUrl = item.resultUrl {
-                                selectedImageURL = resultUrl
+                            if let resultURL = item.resultURL {
+                                selectedImageURL = resultURL
                             }
                         },
                         onRerun: { item in await viewModel.rerunJob(item) },
@@ -88,7 +88,7 @@ struct LibraryView: View {
         }
         .sheet(isPresented: $viewModel.showingShareSheet) {
             if let item = viewModel.selectedItem {
-                ShareSheet(activityItems: [item.resultUrl?.absoluteString ?? ""])
+                ShareSheet(activityItems: [item.resultURL?.absoluteString ?? ""])
             }
         }
         .sheet(isPresented: Binding<Bool>(
