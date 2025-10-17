@@ -47,12 +47,17 @@ class LibraryViewModel: ObservableObject {
     @Published var showingShareSheet = false
     @Published var showingDeleteConfirmation = false
     @Published var itemToDelete: HistoryItem?
+    @Published var isDownloading = false
+    @Published var downloadingItemId: String?
     
     // Services
     private let supabaseService: SupabaseService
     private let authService: HybridAuthService
     private let storageService: StorageService
     private let creditManager: HybridCreditManager
+    
+    // Image Cache
+    private let imageCache = NSCache<NSString, UIImage>()
     
     // MARK: - Computed Properties
     
@@ -78,6 +83,19 @@ class LibraryViewModel: ObservableObject {
         self.authService = authService
         self.storageService = storageService
         self.creditManager = creditManager
+        
+        // Configure image cache
+        imageCache.countLimit = 50
+        imageCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
+        
+        // Add memory warning observer
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.clearImageCache()
+        }
     }
     
     func loadHistory() async {
@@ -255,7 +273,7 @@ class LibraryViewModel: ObservableObject {
         }
     }
     
-    private func generateSignedURL(from path: String) async -> URL? {
+    func generateSignedURL(from path: String) async -> URL? {
         // Use proper Supabase signed URL generation
         do {
             let signedURLString = try await supabaseService.getSignedURL(for: path)
@@ -278,6 +296,10 @@ class LibraryViewModel: ObservableObject {
             return
         }
         
+        // Set loading state
+        isDownloading = true
+        downloadingItemId = item.id
+        
         print("📥 [LibraryViewModel] Starting download for: \(item.effectTitle)")
         
         do {
@@ -287,6 +309,8 @@ class LibraryViewModel: ObservableObject {
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 print("❌ [LibraryViewModel] Failed to download image: Invalid response")
+                isDownloading = false
+                downloadingItemId = nil
                 return
             }
             
@@ -297,7 +321,14 @@ class LibraryViewModel: ObservableObject {
             
         } catch {
             print("❌ [LibraryViewModel] Download failed: \(error)")
+            // Show error to user
+            errorMessage = "Failed to download image: \(error.localizedDescription)"
+            showingError = true
         }
+        
+        // Clear loading state
+        isDownloading = false
+        downloadingItemId = nil
     }
     
     private func saveImageToPhotos(data: Data) async throws {
@@ -339,5 +370,23 @@ class LibraryViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Image Caching
+    
+    func getCachedImage(for url: URL) -> UIImage? {
+        let key = NSString(string: url.absoluteString)
+        return imageCache.object(forKey: key)
+    }
+    
+    func cacheImage(_ image: UIImage, for url: URL) {
+        let key = NSString(string: url.absoluteString)
+        imageCache.setObject(image, forKey: key)
+        print("📸 [LibraryViewModel] Cached image for: \(url.lastPathComponent)")
+    }
+    
+    private func clearImageCache() {
+        imageCache.removeAllObjects()
+        print("🧹 [LibraryViewModel] Cleared image cache due to memory warning")
     }
 }

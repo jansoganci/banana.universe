@@ -12,6 +12,7 @@ import SwiftUI
 struct HistoryItemRow: View {
     let item: HistoryItem
     let onTap: () -> Void
+    let onSelect: () -> Void
     let onRerun: () -> Void
     let onShare: () -> Void
     let onDownload: () -> Void
@@ -24,7 +25,7 @@ struct HistoryItemRow: View {
             // Haptic feedback
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            onTap()
+            onSelect()
         }) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 // Thumbnail
@@ -34,16 +35,21 @@ struct HistoryItemRow: View {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.25)))
                     case .failure(_):
-                        Image(systemName: "photo")
-                            .font(.system(size: 24))
-                            .foregroundColor(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo")
+                                .font(.system(size: 24))
+                                .foregroundColor(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme))
+                            
+                            Text("Image failed to load")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
                     case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
+                        SkeletonView()
                     @unknown default:
                         EmptyView()
                     }
@@ -119,5 +125,35 @@ struct HistoryItemRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.effectTitle), \(item.status.displayText), \(item.relativeDate)")
         .accessibilityHint("Double tap to view details")
+    }
+}
+
+// MARK: - Skeleton View
+struct SkeletonView: View {
+    @State private var isAnimating = false
+    @EnvironmentObject var themeManager: ThemeManager
+    
+    var body: some View {
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    colors: [
+                        DesignTokens.Surface.secondary(themeManager.resolvedColorScheme),
+                        DesignTokens.Surface.elevated(themeManager.resolvedColorScheme),
+                        DesignTokens.Surface.secondary(themeManager.resolvedColorScheme)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .opacity(isAnimating ? 0.3 : 0.6)
+            .animation(
+                .easeInOut(duration: 1.0)
+                .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
     }
 }

@@ -14,6 +14,7 @@ struct HistoryList: View {
     let isRefreshing: Bool
     let onRefresh: () async -> Void
     let onItemTap: (HistoryItem) -> Void
+    let onSelect: (HistoryItem) -> Void
     let onRerun: (HistoryItem) async -> Void
     let onShare: (HistoryItem) -> Void
     let onDownload: (HistoryItem) async -> Void
@@ -28,6 +29,7 @@ struct HistoryList: View {
                     HistoryItemRow(
                         item: item,
                         onTap: { onItemTap(item) },
+                        onSelect: { onSelect(item) },
                         onRerun: { Task { await onRerun(item) } },
                         onShare: { onShare(item) },
                         onDownload: { Task { await onDownload(item) } },

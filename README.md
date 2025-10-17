@@ -1,8 +1,8 @@
-# PixelMage 🍌✨
+# BananaUniverse 🍌✨
 
 **Professional AI Image Processing Suite for iOS**
 
-PixelMage is a comprehensive iOS app that transforms your photos using 19+ cutting-edge AI models. Built with the Steve Jobs philosophy of "Simplicity is the ultimate sophistication," it delivers professional-grade image enhancement through a fast, elegant interface powered by Supabase Edge Functions.
+BananaUniverse is a comprehensive iOS app that transforms your photos using 19+ cutting-edge AI models. Built with the Steve Jobs philosophy of "Simplicity is the ultimate sophistication," it delivers professional-grade image enhancement through a fast, elegant interface powered by Supabase Edge Functions.
 
 ## ✨ Features
 
@@ -77,8 +77,8 @@ PixelMage is a comprehensive iOS app that transforms your photos using 19+ cutti
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/jansoganci/PixelMage.git
-cd PixelMage
+git clone https://github.com/jansoganci/banana.universe.git
+cd BananaUniverse
 ```
 
 2. **Open the project:**
@@ -152,7 +152,7 @@ supabase functions deploy process-image
 ```
 
 4. **Configure Storage Bucket:**
-   - Create `pixelmage-images-prod` bucket
+   - Create `bananauniverse-images-prod` bucket
    - Set up RLS policies for user access
 
 ### Environment Configuration

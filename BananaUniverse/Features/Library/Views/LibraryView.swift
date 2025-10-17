@@ -10,6 +10,7 @@ import SwiftUI
 struct LibraryView: View {
     @StateObject private var viewModel = LibraryViewModel()
     @EnvironmentObject var themeManager: ThemeManager
+    @State private var selectedImageURL: URL? = nil
     
     var body: some View {
         NavigationView {
@@ -44,6 +45,11 @@ struct LibraryView: View {
                         isRefreshing: viewModel.isRefreshing,
                         onRefresh: { await viewModel.refreshHistory() },
                         onItemTap: { item in viewModel.navigateToResult(item) },
+                        onSelect: { item in
+                            if let resultUrl = item.resultUrl {
+                                selectedImageURL = resultUrl
+                            }
+                        },
                         onRerun: { item in await viewModel.rerunJob(item) },
                         onShare: { item in viewModel.shareResult(item) },
                         onDownload: { item in await viewModel.downloadImage(item) },
@@ -85,20 +91,17 @@ struct LibraryView: View {
                 ShareSheet(activityItems: [item.resultUrl?.absoluteString ?? ""])
             }
         }
+        .sheet(isPresented: Binding<Bool>(
+            get: { selectedImageURL != nil },
+            set: { if !$0 { selectedImageURL = nil } }
+        )) {
+            if let url = selectedImageURL {
+                ImageDetailView(imageURL: url)
+            }
+        }
     }
 }
 
-// MARK: - Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
 
 #Preview {
     LibraryView()
