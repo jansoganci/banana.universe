@@ -266,12 +266,52 @@ struct DesignTokens {
         static let gentle = SwiftUI.Animation.easeInOut(duration: 0.4)
         static let spring = SwiftUI.Animation.spring(response: 0.6, dampingFraction: 0.8)
         static let bouncy = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.6)
+    }
+    
+    // MARK: - 📳 Haptic System
+    
+    struct Haptics {
+        private static let lightImpact = UIImpactFeedbackGenerator(style: .light)
+        private static let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
+        private static let heavyImpact = UIImpactFeedbackGenerator(style: .heavy)
+        private static let notification = UINotificationFeedbackGenerator()
+        private static let selection = UISelectionFeedbackGenerator()
         
-        // Haptic feedback
-        static let hapticLight = UIImpactFeedbackGenerator(style: .light)
-        static let hapticMedium = UIImpactFeedbackGenerator(style: .medium)
-        static let hapticHeavy = UIImpactFeedbackGenerator(style: .heavy)
-        static let hapticSuccess = UINotificationFeedbackGenerator()
+        static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+            let generator: UIImpactFeedbackGenerator
+            switch style {
+            case .light:
+                generator = lightImpact
+            case .medium:
+                generator = mediumImpact
+            case .heavy:
+                generator = heavyImpact
+            @unknown default:
+                generator = mediumImpact
+            }
+            generator.prepare()
+            generator.impactOccurred()
+        }
+        
+        static func success() {
+            notification.prepare()
+            notification.notificationOccurred(.success)
+        }
+        
+        static func warning() {
+            notification.prepare()
+            notification.notificationOccurred(.warning)
+        }
+        
+        static func error() {
+            notification.prepare()
+            notification.notificationOccurred(.error)
+        }
+        
+        static func selectionChanged() {
+            selection.prepare()
+            selection.selectionChanged()
+        }
     }
     
     // MARK: - 📱 Layout Constants
@@ -300,16 +340,14 @@ extension View {
     /// Apply haptic feedback
     func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) -> some View {
         self.onTapGesture {
-            let generator = UIImpactFeedbackGenerator(style: style)
-            generator.impactOccurred()
+            DesignTokens.Haptics.impact(style)
         }
     }
     
     /// Apply success haptic
     func successHaptic() -> some View {
         self.onTapGesture {
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            DesignTokens.Haptics.success()
         }
     }
 }

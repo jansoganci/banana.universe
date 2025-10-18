@@ -23,4 +23,21 @@ struct Config {
     #else
     static let isDebug = false
     #endif
+    
+    // MARK: - Paywall Configuration
+    static let useTestPaywall = false // Always use Adapty now
+    static let testPaywallPlacementId = "test_paywall_review" // Fake paywall for App Review testing only
+    
+    // MARK: - Privacy & Legal
+    static let privacyPolicyURL = "https://jansoganci.github.io/bananauniverse/privacy"
+    static let termsOfServiceURL = "https://jansoganci.github.io/bananauniverse/terms"
+    static let supportURL = "https://jansoganci.github.io/bananauniverse/support"
+    
+    // MARK: - Debug Logging
+    static func debugLog(_ message: String, file: String = #file, function: String = #function) {
+        #if DEBUG
+        let fileName = URL(fileURLWithPath: file).lastPathComponent
+        print("[\(fileName):\(function)] \(message)")
+        #endif
+    }
 }

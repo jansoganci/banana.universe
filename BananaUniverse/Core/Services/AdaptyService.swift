@@ -26,44 +26,62 @@ class AdaptyService: ObservableObject {
     func initialize() async throws {
         guard !isInitialized else { return }
         
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
         
         do {
-            // Initialize Adapty with your public SDK key
-            try await Adapty.activate("YOUR_ADAPTY_PUBLIC_KEY") // Replace with actual key
-            
-            // Get initial profile
+            // Adapty is already activated in App init, just get the profile
             profile = try await Adapty.getProfile()
             
             isInitialized = true
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to initialize Adapty"
             isLoading = false
-            throw error
+            throw appError
         }
     }
     
     // MARK: - Paywall Management
     func loadPaywall(placementId: String = "main_paywall") async throws {
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
         
         do {
             paywall = try await Adapty.getPaywall(placementId: placementId)
-            products = try await Adapty.getPaywallProducts(paywall: paywall!)
+            guard let paywall = paywall else {
+                Config.debugLog("Paywall is nil after fetching")
+                throw NSError(domain: "AdaptyService", code: 1002, userInfo: [NSLocalizedDescriptionKey: "Failed to load paywall"])
+            }
+            products = try await Adapty.getPaywallProducts(paywall: paywall)
             
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to load paywall"
             isLoading = false
-            throw error
+            throw appError
         }
     }
     
     // MARK: - Purchases
     func makePurchase(product: AdaptyPaywallProduct) async throws -> AdaptyProfile {
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            throw NSError(domain: "AdaptyService", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Adapty not activated"])
+        }
+        
         isLoading = true
         errorMessage = nil
         
@@ -71,26 +89,41 @@ class AdaptyService: ObservableObject {
             let result = try await Adapty.makePurchase(product: product)
             profile = result.profile
             isLoading = false
-            return profile!
+            guard let profile = profile else {
+                Config.debugLog("Profile is nil after purchase")
+                throw NSError(domain: "AdaptyService", code: 1003, userInfo: [NSLocalizedDescriptionKey: "Purchase completed but profile is unavailable"])
+            }
+            return profile
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "An error occurred"
             isLoading = false
-            throw error
+            throw appError
         }
     }
     
     func restorePurchases() async throws -> AdaptyProfile {
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            throw NSError(domain: "AdaptyService", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Adapty not activated"])
+        }
+        
         isLoading = true
         errorMessage = nil
         
         do {
             profile = try await Adapty.restorePurchases()
             isLoading = false
-            return profile!
+            guard let profile = profile else {
+                Config.debugLog("Profile is nil after restore")
+                throw NSError(domain: "AdaptyService", code: 1004, userInfo: [NSLocalizedDescriptionKey: "Restore completed but profile is unavailable"])
+            }
+            return profile
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "An error occurred"
             isLoading = false
-            throw error
+            throw appError
         }
     }
     
@@ -132,33 +165,53 @@ class AdaptyService: ObservableObject {
     
     // MARK: - Analytics
     func trackEvent(_ eventName: String, parameters: [String: Any]? = nil) {
-        Adapty.logShowPaywall(paywall!)
+        guard let paywall = paywall else {
+            Config.debugLog("Cannot track event: paywall is nil")
+            return
+        }
+        Adapty.logShowPaywall(paywall)
     }
     
     func trackPurchase(product: AdaptyPaywallProduct) {
-        Adapty.logShowPaywall(paywall!)
+        guard let paywall = paywall else {
+            Config.debugLog("Cannot track purchase: paywall is nil")
+            return
+        }
+        Adapty.logShowPaywall(paywall)
     }
     
     // MARK: - User Identification (for migration from anonymous to authenticated)
     func identify(userId: String) async throws {
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            throw NSError(domain: "AdaptyService", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Adapty not activated"])
+        }
+        
         do {
             try await Adapty.identify(userId)
             profile = try await Adapty.getProfile()
-            print("✅ [AdaptyService] User identified: \(userId)")
+            Config.debugLog("User identified: \(userId)")
         } catch {
-            print("⚠️ [AdaptyService] Failed to identify user: \(error)")
-            throw error
+            Config.debugLog("Failed to identify user: \(error)")
+            let appError = AppError.from(error)
+            throw appError
         }
     }
     
     func logout() async throws {
+        guard await Adapty.isActivated else {
+            Config.debugLog("Waiting for Adapty activation...")
+            throw NSError(domain: "AdaptyService", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Adapty not activated"])
+        }
+        
         do {
             try await Adapty.logout()
             profile = nil
-            print("✅ [AdaptyService] User logged out from Adapty")
+            Config.debugLog("User logged out from Adapty")
         } catch {
-            print("⚠️ [AdaptyService] Failed to logout: \(error)")
-            throw error
+            Config.debugLog("Failed to logout: \(error)")
+            let appError = AppError.from(error)
+            throw appError
         }
     }
     

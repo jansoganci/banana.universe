@@ -42,6 +42,21 @@ struct ProfileView: View {
         } message: {
             Text(viewModel.alertMessage)
         }
+        .alert("Delete Account", isPresented: $viewModel.showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete Account", role: .destructive) {
+                Task {
+                    await viewModel.deleteAccount()
+                }
+            }
+        } message: {
+            VStack(spacing: 8) {
+                Text("Are you sure you want to delete your account?")
+                Text("This action cannot be undone. All your data, including processed images and credits, will be permanently deleted.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
     
     @ViewBuilder
@@ -57,6 +72,7 @@ struct ProfileView: View {
                 ],
                 onUpgradeTap: {
                     showPaywall = true
+                    // TODO: insert Adapty Paywall ID here - placement: profile_upgrade
                 },
                 onManageTap: {
                     viewModel.openManageSubscription()
@@ -64,6 +80,26 @@ struct ProfileView: View {
             )
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.top, DesignTokens.Spacing.lg)
+            
+            // Sign In or Create Account Button (for anonymous users)
+            if !authService.isAuthenticated {
+                Button {
+                    showSignIn = true
+                } label: {
+                    HStack {
+                        Image(systemName: "person.circle")
+                            .font(.system(size: 18, weight: .medium))
+                        Text("Sign In or Create Account")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(DesignTokens.Brand.primary(.light))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.md)
+            }
             
             // Restore Purchases Button
             if !viewModel.isPRO {
@@ -210,37 +246,6 @@ struct ProfileView: View {
                         .background(Color.white.opacity(0.06))
                         .padding(.leading, 56)
                     
-                    // Unlimited Mode Toggle (Testing Feature)
-                    HStack(spacing: 16) {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(DesignTokens.Brand.gold)
-                            .frame(width: 24)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Unlimited Mode")
-                                .font(.system(size: 16))
-                                .foregroundColor(DesignTokens.Text.accent(themeManager.resolvedColorScheme))
-                            
-                            Text(creditManager.isUnlimitedMode ? "Simulating Premium User" : "For testing only")
-                                .font(.system(size: 12))
-                                .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                        }
-                        
-                        Spacer()
-                        
-                        Toggle("", isOn: $creditManager.isUnlimitedMode)
-                            .toggleStyle(SwitchToggleStyle(tint: DesignTokens.Brand.gold))
-                            .onChange(of: creditManager.isUnlimitedMode) { value in
-                                if value {
-                                    creditManager.enableUnlimitedMode()
-                                } else {
-                                    creditManager.disableUnlimitedMode()
-                                }
-                            }
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .frame(height: 50)
                 }
                 .background(DesignTokens.Background.tertiary(themeManager.resolvedColorScheme))
                 .cornerRadius(16)
@@ -281,7 +286,45 @@ struct ProfileView: View {
                             .padding(.leading, 56)
                         
                         SettingsRow(icon: "doc.text", title: "Terms & Privacy") {
-                            // Handle terms
+                            if let url = URL(string: Config.privacyPolicyURL) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                        
+                        // Only show Delete Account for authenticated users
+                        if authService.isAuthenticated {
+                            Divider()
+                                .background(Color.white.opacity(0.06))
+                                .padding(.leading, 56)
+                            
+                            Button(action: {
+                                if !viewModel.isDeletingAccount {
+                                    viewModel.showDeleteAccountConfirmation()
+                                }
+                            }) {
+                                HStack(spacing: 16) {
+                                    if viewModel.isDeletingAccount {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                            .frame(width: 24, height: 24)
+                                    } else {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(DesignTokens.Semantic.error)
+                                            .frame(width: 24)
+                                    }
+                                    
+                                    Text(viewModel.isDeletingAccount ? "Deleting Account..." : "Delete Account")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(DesignTokens.Semantic.error)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal, DesignTokens.Spacing.md)
+                                .frame(height: 50)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .disabled(viewModel.isDeletingAccount)
                         }
                     }
                     .background(DesignTokens.Background.tertiary(themeManager.resolvedColorScheme))
@@ -371,26 +414,36 @@ struct ProCard: View {
 struct SettingsRow: View {
     let icon: String
     let title: String
+    let isDestructive: Bool
     let onTap: () -> Void
     @EnvironmentObject var themeManager: ThemeManager
+    
+    init(icon: String, title: String, isDestructive: Bool = false, onTap: @escaping () -> Void) {
+        self.icon = icon
+        self.title = title
+        self.isDestructive = isDestructive
+        self.onTap = onTap
+    }
     
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundColor(DesignTokens.Text.accent(themeManager.resolvedColorScheme))
+                    .foregroundColor(isDestructive ? DesignTokens.Semantic.error : DesignTokens.Text.accent(themeManager.resolvedColorScheme))
                     .frame(width: 24)
                 
                 Text(title)
                     .font(.system(size: 16))
-                    .foregroundColor(DesignTokens.Text.accent(themeManager.resolvedColorScheme))
+                    .foregroundColor(isDestructive ? DesignTokens.Semantic.error : DesignTokens.Text.accent(themeManager.resolvedColorScheme))
                 
                 Spacer()
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(DesignTokens.Text.quaternary(themeManager.resolvedColorScheme))
+                if !isDestructive {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(DesignTokens.Text.quaternary(themeManager.resolvedColorScheme))
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.md)
             .frame(height: 50)

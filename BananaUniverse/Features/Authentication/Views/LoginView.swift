@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LoginView: View {
     @StateObject private var authService = HybridAuthService.shared
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var email = ""
     @State private var password = ""
     @State private var isSignUpMode = false
@@ -20,6 +21,7 @@ struct LoginView: View {
             Text(isSignUpMode ? "Create Account" : "Welcome Back")
                 .font(.largeTitle)
                 .bold()
+                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
             
             VStack(spacing: 16) {
                 TextField("Email", text: $email)
@@ -41,7 +43,7 @@ struct LoginView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(Color.blue)
+                .background(DesignTokens.Brand.primary(.light))
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
@@ -51,11 +53,12 @@ struct LoginView: View {
                 isSignUpMode.toggle()
                 clearForm()
             }
-            .foregroundColor(.blue)
+            .foregroundColor(DesignTokens.Brand.primary(.light))
             
             Spacer()
         }
         .padding()
+        .background(DesignTokens.Background.primary(themeManager.resolvedColorScheme))
         .alert("Authentication Error", isPresented: $showingAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -79,7 +82,8 @@ struct LoginView: View {
                     try await authService.signIn(email: email, password: password)
                 }
             } catch {
-                alertMessage = error.localizedDescription
+                let appError = AppError.from(error)
+                alertMessage = appError.errorDescription ?? "Login failed"
                 showingAlert = true
             }
         }

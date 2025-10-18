@@ -122,8 +122,19 @@ class LibraryViewModel: ObservableObject {
             for job in jobs {
                 guard let completedAt = job.completedAt else { continue }
                 
-                let thumbnailURL = job.outputURL != nil ? await generateSignedURL(from: job.outputURL!) : nil
-                let resultURL = job.outputURL != nil ? await generateSignedURL(from: job.outputURL!) : nil
+                let thumbnailURL: URL?
+                if let outputURL = job.outputURL {
+                    thumbnailURL = await generateSignedURL(from: outputURL)
+                } else {
+                    thumbnailURL = nil
+                }
+                
+                let resultURL: URL?
+                if let outputURL = job.outputURL {
+                    resultURL = await generateSignedURL(from: outputURL)
+                } else {
+                    resultURL = nil
+                }
                 
                 let historyItem = HistoryItem(
                     id: job.id.uuidString,
@@ -144,8 +155,9 @@ class LibraryViewModel: ObservableObject {
             print("✅ [LibraryViewModel] Transformed to \(historyItems.count) history items")
             
         } catch {
-            print("❌ [LibraryViewModel] Failed to load history: \(error)")
-            let libraryError = LibraryError.loadFailed(error.localizedDescription)
+            Config.debugLog("Failed to load history: \(error)")
+            let appError = AppError.from(error)
+            let libraryError = LibraryError.loadFailed(appError.errorDescription ?? "Failed to load history")
             errorMessage = libraryError.errorDescription
             showingError = true
         }
@@ -280,7 +292,7 @@ class LibraryViewModel: ObservableObject {
             print("✅ [LibraryViewModel] Generated signed URL for: \(path)")
             return URL(string: signedURLString)
         } catch {
-            print("❌ [LibraryViewModel] Failed to generate signed URL for \(path): \(error)")
+            Config.debugLog("Failed to generate signed URL for \(path): \(error)")
             // Fallback to public URL if signed URL fails
             let baseURL = "https://jiorfutbmahpfgplkats.supabase.co/storage/v1/object/public/\(Config.supabaseBucket)"
             let fullPath = "\(baseURL)/\(path)"
@@ -317,12 +329,13 @@ class LibraryViewModel: ObservableObject {
             // Save to Photos library
             try await saveImageToPhotos(data: data)
             
-            print("✅ [LibraryViewModel] Successfully downloaded and saved image: \(item.effectTitle)")
+            Config.debugLog("Successfully downloaded and saved image: \(item.effectTitle)")
             
         } catch {
-            print("❌ [LibraryViewModel] Download failed: \(error)")
+            Config.debugLog("Download failed: \(error)")
             // Show error to user
-            errorMessage = "Failed to download image: \(error.localizedDescription)"
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to download image"
             showingError = true
         }
         

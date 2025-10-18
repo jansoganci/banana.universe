@@ -72,9 +72,10 @@ struct ChatContainerView: View {
                         leftContent: .appLogo(32),
                         rightContent: HybridAuthService.shared.isAuthenticated 
                             ? .empty 
-                            : (HybridCreditManager.shared.isUnlimitedMode 
-                                ? .unlimitedBadge({ viewModel.showingPaywall = true })
-                                : .quotaBadge(viewModel.remainingQuota, { viewModel.showingPaywall = true }))
+                            : .quotaBadge(viewModel.remainingQuota, { 
+                                viewModel.showingPaywall = true
+                                // TODO: insert Adapty Paywall ID here - placement: chat_quota_exceeded
+                            })
                     )
                     
                     // Messages Area
@@ -148,6 +149,7 @@ struct ChatContainerView: View {
     private func handleUploadTap() {
         if viewModel.remainingQuota <= 0 && !HybridAuthService.shared.isAuthenticated {
             viewModel.showingPaywall = true
+            // TODO: insert Adapty Paywall ID here - placement: chat_quota_exceeded
         } else {
             viewModel.showingImagePicker = true
         }
@@ -157,8 +159,7 @@ struct ChatContainerView: View {
         guard canSendMessage else { return }
         
         // Haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        DesignTokens.Haptics.impact(.medium)
         
         // Send message with original prompt
         Task {
@@ -544,8 +545,7 @@ struct MessageActionButtons: View {
             // Save button
             Button(action: {
                 guard !isSaving else { return }
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
+                DesignTokens.Haptics.impact(.light)
                 
                 withAnimation(DesignTokens.Animation.quick) {
                     isSaving = true
@@ -578,8 +578,7 @@ struct MessageActionButtons: View {
             
             // Share button
             Button(action: {
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
+                DesignTokens.Haptics.impact(.light)
                 onShare(messageId)
             }) {
                 HStack(spacing: 6) {

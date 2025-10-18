@@ -4,11 +4,11 @@
 
 ## Agreement
 
-By using noname_banana, you agree to these terms.
+By using BananaUniverse, you agree to these terms.
 
 ## Service Description
 
-noname_banana is an AI-powered photo enhancement app for iOS.
+BananaUniverse is an AI-powered photo enhancement app for iOS that provides various image processing tools including background removal, object removal, style transfer, and professional headshot generation.
 
 ## Acceptable Use
 
@@ -17,6 +17,7 @@ You may NOT:
 - Abuse rate limits or create multiple accounts
 - Attempt to reverse-engineer the app
 - Use results for illegal purposes
+- Violate any applicable laws or regulations
 
 ## AI Limitations
 
@@ -35,26 +36,68 @@ AI results are provided "as-is" without guarantees:
 - Manage subscriptions via App Store
 - Refunds per Apple's standard refund policy
 - Cancellation takes effect at end of billing period
+- All subscription transactions are processed by Apple through our Adapty integration
 
 ## Free Tier
 
-- 20 AI edits per day
-- 600 edits per month
+- 5 AI credits per day
 - Subject to rate limits
 
 ## Pro Tier
 
-- Unlimited edits (fair use: 500/day, 10,000/month)
+- 50 AI credits per day (unlimited with fair use policy)
 - Faster processing
-- Extended storage (365 days)
+- Abuse detection and prevention systems active
+
+## Rate Limiting and Abuse Prevention
+
+We implement automated systems to prevent abuse and ensure fair usage:
+
+- **Rate Limiting:** Automated daily and hourly limits to prevent system abuse
+- **IP Monitoring:** Temporary IP blocking for suspicious activity patterns
+- **Account Monitoring:** Automated detection of multiple account creation
+- **No Personal Profiling:** These systems do not track or profile users personally
+- **Transparent Enforcement:** Users are notified of any restrictions applied
 
 ## Content Moderation
 
 We scan uploads for NSFW content. Violating content will be rejected and deleted immediately.
 
+## Account Suspension
+
+We reserve the right to suspend or terminate accounts for:
+
+- Repeated violation of these Terms of Service
+- Abuse of rate limits or system resources
+- Uploading prohibited content
+- Creating multiple accounts to circumvent limitations
+- Any illegal or harmful activity
+
+**Suspension Process:**
+- First violation: Warning notification
+- Repeated violations: Temporary suspension (7-30 days)
+- Severe violations: Permanent termination
+
+You may appeal suspensions by contacting us at umursoganci@gmail.com.
+
 ## Data Deletion
 
 Delete your account anytime via Profile screen. All data is permanently removed.
+
+## Monitoring and Logging
+
+For security and app stability, we maintain server logs that may include:
+
+- IP addresses and timestamps for security monitoring
+- Request patterns for abuse detection
+- Error logs for app stability improvements
+- Performance metrics for service optimization
+
+**Log Usage:**
+- Security and abuse prevention only
+- App stability and performance improvements
+- No personal profiling or tracking
+- Logs are automatically deleted after 90 days, unless required for security investigation or legal compliance
 
 ## Liability
 
@@ -63,6 +106,7 @@ We are not liable for:
 - Data loss
 - Service interruptions
 - Misuse of enhanced photos
+- Third-party service disruptions
 
 ## Changes
 
@@ -74,9 +118,8 @@ We may suspend or terminate accounts that violate these terms.
 
 ## Contact
 
-Email: support@pixelmage.com
+Email: umursoganci@gmail.com
 
 ## Governing Law
 
-These terms are governed by the laws of [Your Jurisdiction].
-
+These terms are governed by the laws of Turkey.

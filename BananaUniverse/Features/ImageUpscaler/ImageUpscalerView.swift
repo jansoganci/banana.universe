@@ -275,6 +275,7 @@ struct ImageUpscalerView: View {
         guard creditManager.hasCredits() else {
             errorMessage = "You don't have enough credits. Purchase more to continue!"
             showPaywall = true
+            // TODO: insert Adapty Paywall ID here - placement: upscaler_pro_feature
             return
         }
         
@@ -327,20 +328,18 @@ struct ImageUpscalerView: View {
                 errorMessage = "Processing completed but no result URL received"
             }
             
-        } catch SupabaseError.insufficientCredits {
-            errorMessage = "You don't have enough credits. Purchase more to continue!"
-            showPaywall = true
-            debugInfo += "\nError: Insufficient credits"
-        } catch SupabaseError.processingFailed(let message) {
-            errorMessage = "Processing failed: \(message)"
-            debugInfo += "\nProcessing failed: \(message)"
-        } catch SupabaseError.timeout {
-            errorMessage = "Processing timed out. Please try again with a smaller image."
-            debugInfo += "\nError: Timeout"
+        } catch let error as SupabaseError {
+            let appError = error.appError
+            errorMessage = appError.errorDescription ?? "Processing failed"
+            if case .insufficientCredits = appError {
+                showPaywall = true
+                // TODO: insert Adapty Paywall ID here - placement: upscaler_pro_feature
+            }
+            debugInfo += "\nError: \(appError)"
         } catch {
-            errorMessage = "Error: \(error.localizedDescription)"
-            debugInfo += "\nUnexpected error: \(error.localizedDescription)"
-            debugInfo += "\nError type: \(type(of: error))"
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "An unexpected error occurred"
+            debugInfo += "\nUnexpected error: \(appError)"
         }
         
         isProcessing = false

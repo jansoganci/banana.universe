@@ -12,6 +12,7 @@ import AuthenticationServices
 struct QuickAuthView: View {
     @StateObject private var authService = HybridAuthService.shared
     @StateObject private var creditManager = HybridCreditManager.shared
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var email = ""
     @State private var password = ""
@@ -31,15 +32,16 @@ struct QuickAuthView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "icloud.and.arrow.up")
                             .font(.system(size: 50))
-                            .foregroundColor(.blue)
+                            .foregroundColor(DesignTokens.Brand.primary(.light))
                         
-                        Text("Sync Your Credits")
+                        Text("Sync Your Progress")
                             .font(.title)
                             .bold()
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                         
-                        Text("Sign in to sync credits across all your devices and never lose your purchase")
+                        Text("Sign in to sync your work across all your devices and never lose your creations")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -69,24 +71,6 @@ struct QuickAuthView: View {
                         .signInWithAppleButtonStyle(.black)
                         .frame(height: 50)
                         .cornerRadius(10)
-                        
-                        // Google Sign In (placeholder for now)
-                        Button(action: handleGoogleSignIn) {
-                            HStack {
-                                Image(systemName: "globe")
-                                Text("Continue with Google")
-                                    .bold()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.white)
-                            .foregroundColor(.black)
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            )
-                        }
                     }
                     .padding(.horizontal)
                     
@@ -127,7 +111,7 @@ struct QuickAuthView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color.blue)
+                        .background(DesignTokens.Brand.primary(.light))
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .disabled(email.isEmpty || password.isEmpty || authService.isLoading)
@@ -143,6 +127,7 @@ struct QuickAuthView: View {
                     Spacer()
                 }
             }
+            .background(DesignTokens.Background.primary(themeManager.resolvedColorScheme))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -181,7 +166,8 @@ struct QuickAuthView: View {
                 onAuthSuccess()
                 
             } catch {
-                errorMessage = error.localizedDescription
+                let appError = AppError.from(error)
+                errorMessage = appError.errorDescription ?? "Authentication failed"
                 showError = true
             }
         }
@@ -200,17 +186,12 @@ struct QuickAuthView: View {
             // https://supabase.com/docs/guides/auth/social-login/auth-apple
             
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Authentication failed"
             showError = true
         }
     }
     
-    private func handleGoogleSignIn() {
-        // TODO: Implement Google Sign In with Supabase
-        // https://supabase.com/docs/guides/auth/social-login/auth-google
-        errorMessage = "Google Sign In coming soon! Please use email for now."
-        showError = true
-    }
 }
 
 // MARK: - Benefit Row Component
@@ -218,17 +199,18 @@ struct QuickAuthView: View {
 struct BenefitRow: View {
     let icon: String
     let text: String
+    @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.green)
+                .foregroundColor(DesignTokens.Brand.primary(.light))
                 .font(.system(size: 20))
                 .frame(width: 24)
             
             Text(text)
                 .font(.subheadline)
-                .foregroundColor(.primary)
+                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
             
             Spacer()
         }

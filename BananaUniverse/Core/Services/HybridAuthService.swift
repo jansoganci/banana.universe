@@ -42,13 +42,21 @@ class HybridAuthService: ObservableObject {
         authStateTask = Task {
             await supabase.client.auth.onAuthStateChange { [weak self] event, session in
                 Task { @MainActor in
+                    guard let self = self else { return }
+                    
+                    // Store the previous state before updating
+                    let previousState = self.userState
+                    
                     if let session = session {
-                        self?.userState = .authenticated(user: session.user)
+                        Config.debugLog("🔐 [HybridAuthService] Auth state changed: User signed in")
+                        self.userState = .authenticated(user: session.user)
                         // Migrate credits if coming from anonymous state
-                        await self?.handleAuthenticationStateChange()
+                        await self.handleAuthenticationStateChange(from: previousState, to: self.userState)
                     } else {
-                        // User signed out - switch to anonymous
-                        self?.userState = .anonymous(deviceId: UUID().uuidString)
+                        Config.debugLog("🔓 [HybridAuthService] Auth state changed: User signed out")
+                        self.userState = .anonymous(deviceId: UUID().uuidString)
+                        // Update credit manager with new anonymous state
+                        HybridCreditManager.shared.setUserState(self.userState)
                     }
                 }
             }
@@ -56,20 +64,35 @@ class HybridAuthService: ObservableObject {
     }
     
     private func checkCurrentUser() {
+        let previousState = userState
+        
         if let user = supabase.getCurrentUser() {
+            Config.debugLog("🔐 [HybridAuthService] Found existing authenticated user on startup")
             userState = .authenticated(user: user)
         } else {
+            Config.debugLog("🔓 [HybridAuthService] No authenticated user found, using anonymous mode")
             let deviceId = getOrCreateDeviceUUID()
             userState = .anonymous(deviceId: deviceId)
         }
+        
+        // Update credit manager with the determined state
+        HybridCreditManager.shared.setUserState(userState)
+        Config.debugLog("✅ [HybridAuthService] Initial state set. isAuthenticated: \(userState.isAuthenticated)")
     }
     
-    private func handleAuthenticationStateChange() async {
-        // If we have a previous anonymous state, migrate credits
-        if case .anonymous = userState {
-            // This will be handled by the credit manager
-            HybridCreditManager.shared.setUserState(userState)
+    private func handleAuthenticationStateChange(from previousState: UserState, to newState: UserState) async {
+        Config.debugLog("🔄 [HybridAuthService] State transition: \(previousState.isAuthenticated ? "authenticated" : "anonymous") → \(newState.isAuthenticated ? "authenticated" : "anonymous")")
+        
+        // Update credit manager with the new state
+        HybridCreditManager.shared.setUserState(newState)
+        
+        // If transitioning from anonymous to authenticated, handle credit migration
+        if case .anonymous = previousState, case .authenticated = newState {
+            Config.debugLog("💳 [HybridAuthService] Migrating credits from anonymous to authenticated account")
+            // Credit migration will be handled by HybridCreditManager
         }
+        
+        Config.debugLog("✅ [HybridAuthService] State change completed. isAuthenticated: \(newState.isAuthenticated)")
     }
     
     // MARK: - Anonymous Authentication
@@ -91,7 +114,8 @@ class HybridAuthService: ObservableObject {
             try await supabase.signIn(email: email, password: password)
             // Auth state will be updated via listener
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Sign in failed"
             isLoading = false
             throw error
         }
@@ -107,7 +131,8 @@ class HybridAuthService: ObservableObject {
             try await supabase.signUp(email: email, password: password)
             // Auth state will be updated via listener
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Sign up failed"
             isLoading = false
             throw error
         }
@@ -153,7 +178,8 @@ class HybridAuthService: ObservableObject {
             
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Sign out failed"
             isLoading = false
             throw error
         }
@@ -173,7 +199,8 @@ class HybridAuthService: ObservableObject {
             
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Password reset failed"
             isLoading = false
             throw error
         }

@@ -24,6 +24,12 @@ struct PaywallView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
+        realPaywallView
+    }
+    
+    // MARK: - Real Paywall View (Original Implementation)
+    
+    private var realPaywallView: some View {
         NavigationView {
             ZStack {
                 // Background gradient
@@ -57,7 +63,10 @@ struct PaywallView: View {
                         }
                         
                         // Restore button
-                        Button(action: handleRestore) {
+                        Button(action: {
+                            DesignTokens.Haptics.impact(.medium)
+                            handleRestore()
+                        }) {
                             HStack {
                                 Image(systemName: "arrow.clockwise")
                                 Text("Restore Purchases")
@@ -187,7 +196,10 @@ struct PaywallView: View {
                 .font(.headline)
             
             // Option 1: Quick Sign-In (Recommended)
-            Button(action: { showQuickAuth = true }) {
+            Button(action: {
+                DesignTokens.Haptics.impact(.medium)
+                showQuickAuth = true
+            }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -225,7 +237,10 @@ struct PaywallView: View {
             .buttonStyle(.plain)
             
             // Option 2: Skip and Purchase Anonymously
-            Button(action: { proceedWithPurchase(isAuthenticated: false) }) {
+            Button(action: {
+                DesignTokens.Haptics.impact(.light)
+                proceedWithPurchase(isAuthenticated: false)
+            }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Skip for Now")
@@ -264,15 +279,18 @@ struct PaywallView: View {
     
     private func loadPaywall() async {
         do {
-            try await adaptyService.loadPaywall(placementId: "main_paywall")
+            // TODO: insert Adapty Paywall ID here
+            try await adaptyService.loadPaywall(placementId: "home_get_pro")
         } catch {
+            let appError = AppError.from(error)
             alertTitle = "Error"
-            alertMessage = "Failed to load products: \(error.localizedDescription)"
+            alertMessage = appError.errorDescription ?? "Failed to load products"
             showAlert = true
         }
     }
     
     private func handleProductSelection(_ product: AdaptyPaywallProduct) {
+        DesignTokens.Haptics.selectionChanged()
         selectedProduct = product
         withAnimation {
             purchaseFlow = .productSelected
@@ -286,8 +304,8 @@ struct PaywallView: View {
             do {
                 purchaseFlow = .processing
                 
-                            // Make purchase through HybridCreditManager
-                            try await creditManager.purchaseCredits(product: product)
+                // Make purchase through HybridCreditManager
+                try await creditManager.purchaseCredits(product: product)
                 
                 // Add bonus credits if authenticated
                 if isAuthenticated {
@@ -295,6 +313,7 @@ struct PaywallView: View {
                     try await creditManager.addCredits(bonusCredits, source: .bonus)
                 }
                 
+                DesignTokens.Haptics.success()
                 alertTitle = "Success!"
                 alertMessage = isAuthenticated
                     ? "Credits purchased and synced! You got \(getCreditAmount(from: product)) + \(getCreditAmount(from: product) / 5) bonus credits."
@@ -304,8 +323,10 @@ struct PaywallView: View {
                 purchaseFlow = .completed
                 
             } catch {
+                DesignTokens.Haptics.warning()
+                let appError = AppError.from(error)
                 alertTitle = "Purchase Failed"
-                alertMessage = error.localizedDescription
+                alertMessage = appError.errorDescription ?? "Purchase failed"
                 showAlert = true
                 purchaseFlow = .failed
             }
@@ -317,13 +338,16 @@ struct PaywallView: View {
             do {
                 try await creditManager.restorePurchases()
                 
+                DesignTokens.Haptics.success()
                 alertTitle = "Restored!"
                 alertMessage = "Your purchases have been restored. You now have \(creditManager.credits) credits."
                 showAlert = true
                 
             } catch {
+                DesignTokens.Haptics.warning()
+                let appError = AppError.from(error)
                 alertTitle = "Restore Failed"
-                alertMessage = error.localizedDescription
+                alertMessage = appError.errorDescription ?? "Restore failed"
                 showAlert = true
             }
         }
@@ -425,4 +449,3 @@ enum PurchaseFlow {
 #Preview {
     PaywallView()
 }
-

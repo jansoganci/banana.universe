@@ -39,8 +39,7 @@ struct PrimaryButton: View {
         Button(action: {
             if isEnabled && !isLoading {
                 // Haptic feedback for premium feel
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                impactFeedback.impactOccurred()
+                DesignTokens.Haptics.impact(.medium)
                 action()
             }
         }) {
@@ -116,8 +115,7 @@ struct SecondaryButton: View {
     var body: some View {
         Button(action: {
             if isEnabled && !isLoading {
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
+                DesignTokens.Haptics.impact(.light)
                 action()
             }
         }) {
@@ -193,8 +191,7 @@ struct AppCard<Content: View>: View {
         Group {
             if let onTap = onTap {
                 Button(action: {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
+                    DesignTokens.Haptics.impact(.light)
                     onTap()
                 }) {
                     cardContent

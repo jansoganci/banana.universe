@@ -228,7 +228,7 @@ struct ImageDetailView: View {
             }
             
         } catch {
-            print("❌ [ImageDetailView] Download failed: \(error)")
+            Config.debugLog("Download failed: \(error)")
         }
         
         isDownloading = false

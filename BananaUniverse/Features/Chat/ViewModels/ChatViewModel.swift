@@ -64,7 +64,7 @@ class ChatViewModel: ObservableObject {
     @Published var showingPaywall = false
     @Published var showingLogin = false
     @Published var dailyQuotaUsed = 0
-    @Published var dailyQuotaLimit = 3 // Free users get 3 free uses per day
+    @Published var dailyQuotaLimit = 5 // Free users get 5 free uses per day
     @Published var currentPrompt: String? = nil // Current prompt for processing
     @Published var messages: [ChatMessage] = [] // Chat messages for displaying results
     @Published var currentJobID: String? = nil // Current job being processed
@@ -141,7 +141,8 @@ class ChatViewModel: ObservableObject {
         case .success(let item):
             loadImage(from: item)
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to load image"
         }
     }
     
@@ -158,7 +159,8 @@ class ChatViewModel: ObservableObject {
                 selectedImage = image
                 errorMessage = nil
             } catch {
-                errorMessage = error.localizedDescription
+                let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "An error occurred"
             }
         }
     }
@@ -170,8 +172,8 @@ class ChatViewModel: ObservableObject {
             return
         }
         
-        // Check quota limits for anonymous users (unless unlimited mode is enabled)
-        if !authService.isAuthenticated && !creditManager.isUnlimitedMode {
+        // Check quota limits for anonymous users
+        if !authService.isAuthenticated {
             if dailyQuotaUsed >= dailyQuotaLimit {
                 showingPaywall = true
                 return
@@ -188,8 +190,14 @@ class ChatViewModel: ObservableObject {
         currentJobID = nil
         
         // Add user message with the prompt and image
+        let promptContent: String
+        if let prompt = currentPrompt, !prompt.isEmpty {
+            promptContent = prompt
+        } else {
+            promptContent = "Enhance this image"
+        }
         addUserMessage(
-            content: currentPrompt?.isEmpty == false ? currentPrompt! : "Enhance this image",
+            content: promptContent,
             image: image
         )
         
@@ -203,13 +211,13 @@ class ChatViewModel: ObservableObject {
             uploadProgress = 0.1
             
             // Step 2: Upload image to Supabase Storage first
-            print("📤 [ChatViewModel] Uploading image to storage...")
+            Config.debugLog("Uploading image to storage...")
             let imageURL = try await supabaseService.uploadImageToStorage(imageData: imageData)
-            print("✅ [ChatViewModel] Image uploaded: \(imageURL)")
+            Config.debugLog("Image uploaded successfully")
             
             uploadProgress = 0.2
             
-            print("🍎 [ChatViewModel] Using Steve Jobs style processing...")
+            Config.debugLog("Using Steve Jobs style processing...")
             
             // Step 3: 🍎 STEVE JOBS STYLE - Direct processing (no polling!)
             jobStatus = .processing(elapsedTime: 0)
@@ -222,7 +230,12 @@ class ChatViewModel: ObservableObject {
             )
             
             // Use original prompt directly
-            let originalPrompt = currentPrompt?.isEmpty == false ? currentPrompt! : "Enhance this image"
+            let originalPrompt: String
+            if let prompt = currentPrompt, !prompt.isEmpty {
+                originalPrompt = prompt
+            } else {
+                originalPrompt = "Enhance this image"
+            }
             
             // Call the Steve Jobs style function - returns result directly!
             let steveJobsResult = try await supabaseService.processImageSteveJobsStyle(
@@ -232,8 +245,8 @@ class ChatViewModel: ObservableObject {
             
             uploadProgress = 0.8
             
-            print("✅ [ChatViewModel] Steve Jobs processing completed!")
-            print("🔗 [ChatViewModel] Processed image URL: \(steveJobsResult.processedImageURL ?? "nil")")
+            Config.debugLog("Steve Jobs processing completed!")
+            Config.debugLog("Processed image URL generated")
             
             // Step 4: Download processed image directly (no polling needed!)
             guard let processedImageURL = steveJobsResult.processedImageURL else {
@@ -243,7 +256,10 @@ class ChatViewModel: ObservableObject {
             uploadProgress = 0.9
             
             // Download the processed image
-            let url = URL(string: processedImageURL)!
+            guard let url = URL(string: processedImageURL) else {
+                Config.debugLog("Failed to create URL from processed image URL")
+                throw ChatError.invalidResult
+            }
             let (processedImageData, _) = try await URLSession.shared.data(from: url)
             
             guard let processedUIImage = UIImage(data: processedImageData) else {
@@ -276,14 +292,15 @@ class ChatViewModel: ObservableObject {
                 incrementDailyQuota()
             }
             
-            print("✅ [ChatViewModel] Processing complete!")
+            Config.debugLog("Processing complete!")
             
         } catch {
-            errorMessage = error.localizedDescription
-            jobStatus = .failed(error: error.localizedDescription)
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Processing failed"
+            jobStatus = .failed(error: appError.errorDescription ?? "Processing failed")
             uploadProgress = 0.0
             
-            print("❌ [ChatViewModel] Processing failed: \(error)")
+            Config.debugLog("Processing failed: \(error)")
             
             // Update or add error message to chat
             if let lastMessage = messages.last, lastMessage.type == .assistant, lastMessage.image == nil {
@@ -337,7 +354,8 @@ class ChatViewModel: ObservableObject {
                 try await storageService.saveToPhotos(image)
                 errorMessage = nil
             } catch {
-                errorMessage = error.localizedDescription
+                let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "An error occurred"
             }
         }
     }
@@ -406,13 +424,14 @@ class ChatViewModel: ObservableObject {
     
     // MARK: - Quota Management
     private func loadDailyQuota() {
-        let today = Calendar.current.startOfDay(for: Date())
-        let lastUsedDate = UserDefaults.standard.object(forKey: "lastQuotaDate") as? Date
+        // Use UTC date to match backend behavior
+        let utcToday = getUTCDateString()
+        let lastUsedDate = UserDefaults.standard.string(forKey: "lastQuotaDate")
         
-        if lastUsedDate != today {
+        if lastUsedDate != utcToday {
             // Reset quota for new day
             dailyQuotaUsed = 0
-            UserDefaults.standard.set(today, forKey: "lastQuotaDate")
+            UserDefaults.standard.set(utcToday, forKey: "lastQuotaDate")
             UserDefaults.standard.set(0, forKey: "dailyQuotaUsed")
         } else {
             // Load existing quota
@@ -420,29 +439,23 @@ class ChatViewModel: ObservableObject {
         }
     }
     
+    private func getUTCDateString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: Date())
+    }
+    
     private func incrementDailyQuota() {
-        // Don't increment quota in unlimited mode
-        if creditManager.isUnlimitedMode {
-            print("🚀 [ChatViewModel] Unlimited mode - quota not incremented")
-            return
-        }
         dailyQuotaUsed += 1
         UserDefaults.standard.set(dailyQuotaUsed, forKey: "dailyQuotaUsed")
     }
     
     var remainingQuota: Int {
-        // Check if unlimited mode is enabled
-        if creditManager.isUnlimitedMode {
-            return 999  // Return high number to display, but logic uses isUnlimitedMode check
-        }
         return max(0, dailyQuotaLimit - dailyQuotaUsed)
     }
     
     var hasQuotaLeft: Bool {
-        // Unlimited mode always has quota
-        if creditManager.isUnlimitedMode {
-            return true
-        }
         return remainingQuota > 0
     }
     

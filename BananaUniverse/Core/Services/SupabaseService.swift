@@ -15,8 +15,11 @@ class SupabaseService: ObservableObject {
     let client: SupabaseClient
     
     private init() {
+        guard let supabaseURL = URL(string: Config.supabaseURL) else {
+            fatalError("Invalid Supabase URL: \(Config.supabaseURL)")
+        }
         client = SupabaseClient(
-            supabaseURL: URL(string: Config.supabaseURL)!,
+            supabaseURL: supabaseURL,
             supabaseKey: Config.supabaseAnonKey
         )
     }
@@ -57,7 +60,7 @@ class SupabaseService: ObservableObject {
     
     /// Upload image to Supabase Storage and return public URL
     func uploadImageToStorage(imageData: Data, fileName: String? = nil) async throws -> String {
-        print("📤 [SupabaseService] Uploading image to storage...")
+        Config.debugLog("Uploading image to storage...")
         
         // Generate unique filename if not provided
         let finalFileName = fileName ?? "\(UUID().uuidString).jpg"
@@ -67,15 +70,15 @@ class SupabaseService: ObservableObject {
         let userOrDeviceID = userState.identifier
         let path = "uploads/\(userOrDeviceID)/\(finalFileName)"
         
-        print("🔍 [SupabaseService] Upload path: \(path)")
-        print("🔍 [SupabaseService] Image data size: \(imageData.count) bytes")
-        print("🔍 [SupabaseService] User state: \(userState)")
-        print("🔍 [SupabaseService] User/Device ID: \(userOrDeviceID)")
+        Config.debugLog("Upload path: \(path)")
+        Config.debugLog("Image data size: \(imageData.count) bytes")
+        Config.debugLog("User state: \(userState.isAuthenticated ? "authenticated" : "anonymous")")
+        Config.debugLog("User/Device ID: \(userOrDeviceID.prefix(8))...")
         
         // Debug: Check current session and JWT
         do {
             let session = try await getCurrentSession()
-            print("🔍 [SupabaseService] Current session: \(session?.accessToken ?? "No session")")
+            Config.debugLog("Current session: \(session != nil ? "present" : "none")")
             
             if let token = session?.accessToken {
                 // Decode JWT to see what's inside
@@ -84,14 +87,14 @@ class SupabaseService: ObservableObject {
                     let payload = String(parts[1])
                     if let data = Data(base64Encoded: payload + "==") {
                         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                            print("🔍 [SupabaseService] JWT payload: \(json)")
-                            print("🔍 [SupabaseService] JWT device_id: \(json["device_id"] ?? "NOT FOUND")")
+                            Config.debugLog("JWT payload decoded successfully")
+                            Config.debugLog("JWT device_id: \(json["device_id"] != nil ? "present" : "missing")")
                         }
                     }
                 }
             }
         } catch {
-            print("❌ [SupabaseService] Error getting session: \(error)")
+            Config.debugLog("Error getting session: \(error)")
         }
         
         // Upload to Supabase Storage
@@ -102,14 +105,14 @@ class SupabaseService: ObservableObject {
                 upsert: true
             ))
         
-        print("✅ [SupabaseService] Image uploaded successfully")
+        Config.debugLog("Image uploaded successfully")
         
         // Get public URL
         let publicURL = try await client.storage
             .from(Config.supabaseBucket)
             .getPublicURL(path: path)
         
-        print("🔗 [SupabaseService] Public URL: \(publicURL)")
+        Config.debugLog("Public URL generated successfully")
         
         return publicURL.absoluteString
     }
@@ -124,17 +127,17 @@ class SupabaseService: ObservableObject {
         prompt: String,
         options: [String: Any] = [:]
     ) async throws -> SteveJobsProcessResponse {
-        print("🍎 [STEVE-JOBS] processImageSteveJobsStyle called")
-        print("🔗 [STEVE-JOBS] Image URL: \(imageURL)")
-        print("💬 [STEVE-JOBS] Prompt: \(prompt)")
+        Config.debugLog("processImageSteveJobsStyle called")
+        Config.debugLog("Image URL provided")
+        Config.debugLog("Prompt: \(prompt.prefix(50))...")
         
         // Get user state from hybrid auth service
         let userState = HybridAuthService.shared.userState
         
         if userState.isAuthenticated {
-            print("✅ [STEVE-JOBS] Authenticated user processing: \(userState.identifier)")
+            Config.debugLog("Authenticated user processing: \(userState.identifier.prefix(8))...")
         } else {
-            print("ℹ️ [STEVE-JOBS] Anonymous user processing: \(userState.identifier)")
+            Config.debugLog("Anonymous user processing: \(userState.identifier.prefix(8))...")
         }
         
         // Prepare request body
@@ -148,13 +151,16 @@ class SupabaseService: ObservableObject {
             body["device_id"] = userState.identifier
         }
         
-        print("🔍 [STEVE-JOBS] Calling Steve Jobs Edge Function...")
+        Config.debugLog("Calling Steve Jobs Edge Function...")
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
         do {
             // Call the new Steve Jobs style edge function
-            let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/process-image")!
+            guard let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/process-image") else {
+                Config.debugLog("Failed to create process-image URL")
+                throw SupabaseError.invalidURL
+            }
             var request = URLRequest(url: functionURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
@@ -171,22 +177,22 @@ class SupabaseService: ObservableObject {
                 throw SupabaseError.invalidResponse
             }
             
-            print("🔍 [STEVE-JOBS] HTTP Status Code: \(httpResponse.statusCode)")
+            Config.debugLog("HTTP Status Code: \(httpResponse.statusCode)")
             
             // Parse response
             let response = try JSONDecoder().decode(SteveJobsProcessResponse.self, from: responseData)
             
             if response.success {
-                print("✅ [STEVE-JOBS] Processing completed successfully!")
-                print("🔗 [STEVE-JOBS] Processed image URL: \(response.processedImageURL ?? "nil")")
+                Config.debugLog("Processing completed successfully!")
+                Config.debugLog("Processed image URL generated")
                 return response
             } else {
-                print("❌ [STEVE-JOBS] Processing failed: \(response.error ?? "Unknown error")")
+                Config.debugLog("Processing failed: \(response.error ?? "Unknown error")")
                 throw SupabaseError.processingFailed(response.error ?? "Processing failed")
             }
             
         } catch {
-            print("❌ [STEVE-JOBS] Error: \(error)")
+            Config.debugLog("Processing error: \(error)")
             throw error
         }
     }
@@ -198,25 +204,25 @@ class SupabaseService: ObservableObject {
         imageData: Data,
         options: [String: Any] = [:]
     ) async throws -> AIProcessResponse {
-        print("🔍 [SupabaseService] processImageData called with model: \(model)")
+        Config.debugLog("processImageData called with model: \(model)")
         
         // Check if user has credits (works for both authenticated and anonymous)
         guard await HybridCreditManager.shared.hasCredits() else {
-            print("❌ [SupabaseService] Insufficient credits")
+            Config.debugLog("Insufficient credits")
             throw SupabaseError.insufficientCredits
         }
         
         // ✅ DON'T spend credit yet - only after success
         let creditsBefore = await HybridCreditManager.shared.credits
-        print("💳 [SupabaseService] Credits available: \(creditsBefore)")
+        Config.debugLog("Credits available: \(creditsBefore)")
         
         // Get user state from hybrid auth service
         let userState = HybridAuthService.shared.userState
         
         if userState.isAuthenticated {
-            print("✅ [SupabaseService] Authenticated user processing: \(userState.identifier)")
+            Config.debugLog("Authenticated user processing: \(userState.identifier.prefix(8))...")
         } else {
-            print("ℹ️ [SupabaseService] Anonymous user processing: \(userState.identifier)")
+            Config.debugLog("Anonymous user processing: \(userState.identifier.prefix(8))...")
         }
         
         // Convert image data to base64
@@ -236,16 +242,19 @@ class SupabaseService: ObservableObject {
             body["device_id"] = userState.identifier
         }
         
-        print("🔍 [SupabaseService] Calling Edge Function with body size: \(body.count) keys")
+        Config.debugLog("Calling Edge Function with body size: \(body.count) keys")
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
         do {
-            print("🔍 [DEBUG] About to invoke edge function...")
-            print("🔍 [DEBUG] Request body size: \(jsonData.count) bytes")
+            Config.debugLog("About to invoke edge function...")
+            Config.debugLog("Request body size: \(jsonData.count) bytes")
             
             // Use URLSession directly instead of Supabase SDK to avoid response parsing issues
-            let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/ai-process")!
+            guard let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/ai-process") else {
+                Config.debugLog("Failed to create ai-process URL")
+                throw SupabaseError.invalidURL
+            }
             var request = URLRequest(url: functionURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
@@ -256,15 +265,15 @@ class SupabaseService: ObservableObject {
             let (responseData, urlResponse) = try await URLSession.shared.data(for: request)
             
             if let httpResponse = urlResponse as? HTTPURLResponse {
-                print("🔍 [DEBUG] HTTP Status Code: \(httpResponse.statusCode)")
+                Config.debugLog("HTTP Status Code: \(httpResponse.statusCode)")
                 
                 // Handle 202 Accepted (async processing)
                 if httpResponse.statusCode == 202 {
-                    print("⏳ [SupabaseService] Processing started (202), polling for result...")
+                    Config.debugLog("Processing started (202), polling for result...")
                     
                     // Parse job_id from response
                     if let responseString = String(data: responseData, encoding: .utf8) {
-                        print("🔍 [DEBUG] Async response: \(responseString)")
+                        Config.debugLog("Async response received")
                     }
                     
                     // For now, throw error - we need to implement polling
@@ -272,13 +281,13 @@ class SupabaseService: ObservableObject {
                 }
             }
             
-            print("✅ [SupabaseService] Edge Function response received, size: \(responseData.count) bytes")
+            Config.debugLog("Edge Function response received, size: \(responseData.count) bytes")
             
             // Debug: Print raw response data
             if let responseString = String(data: responseData, encoding: .utf8) {
-                print("🔍 [DEBUG] Raw response from Edge Function: \(responseString)")
+                Config.debugLog("Edge Function response received (\(responseString.count) chars)")
             } else {
-                print("❌ [DEBUG] Could not decode response as UTF-8 string")
+                Config.debugLog("Could not decode response as UTF-8 string")
             }
             
             let decoder = JSONDecoder()
@@ -286,55 +295,51 @@ class SupabaseService: ObservableObject {
             
             do {
                 let response = try decoder.decode(AIProcessResponse.self, from: responseData)
-                print("✅ [SupabaseService] Response decoded successfully: \(response)")
+                Config.debugLog("Response decoded successfully")
                 
                 // ✅ ONLY deduct credit on success
                 _ = try await HybridCreditManager.shared.spendCredit()
-                print("✅ [SupabaseService] Processing successful, credit spent. Remaining: \(await HybridCreditManager.shared.credits)")
+                Config.debugLog("Processing successful, credit spent. Remaining: \(await HybridCreditManager.shared.credits)")
                 
                 return response
             } catch DecodingError.dataCorrupted(let context) {
-                print("❌ [DEBUG] Data corrupted:", context)
+                Config.debugLog("Data corrupted: \(context.debugDescription)")
                 throw SupabaseError.processingFailed("Data corrupted")
             } catch DecodingError.keyNotFound(let key, let context) {
-                print("❌ [DEBUG] Key '\(key)' not found:", context.debugDescription)
-                print("❌ [DEBUG] codingPath:", context.codingPath)
+                Config.debugLog("Key '\(key)' not found: \(context.debugDescription)")
+                Config.debugLog("codingPath: \(context.codingPath)")
                 throw SupabaseError.processingFailed("Key '\(key)' not found")
             } catch DecodingError.valueNotFound(let value, let context) {
-                print("❌ [DEBUG] Value '\(value)' not found:", context.debugDescription)
-                print("❌ [DEBUG] codingPath:", context.codingPath)
+                Config.debugLog("Value '\(value)' not found: \(context.debugDescription)")
+                Config.debugLog("codingPath: \(context.codingPath)")
                 throw SupabaseError.processingFailed("Value '\(value)' not found")
             } catch DecodingError.typeMismatch(let type, let context) {
-                print("❌ [DEBUG] Type '\(type)' mismatch:", context.debugDescription)
-                print("❌ [DEBUG] codingPath:", context.codingPath)
-                print("❌ [DEBUG] Expected type:", type)
+                Config.debugLog("Type '\(type)' mismatch: \(context.debugDescription)")
+                Config.debugLog("codingPath: \(context.codingPath)")
+                Config.debugLog("Expected type: \(type)")
                 throw SupabaseError.processingFailed("Type '\(type)' mismatch")
             } catch {
-                print("❌ [DEBUG] Other decoding error:", error)
+                Config.debugLog("Other decoding error: \(error)")
                 throw error
             }
             
         } catch {
             // ❌ Processing failed - credit NOT spent
-            print("❌ [SupabaseService] Edge Function call failed: \(error)")
-            print("❌ [SupabaseService] Error type: \(type(of: error))")
-            print("❌ [SupabaseService] Error description: \(error.localizedDescription)")
-            print("❌ [SupabaseService] Credit NOT deducted due to error")
+            Config.debugLog("Edge Function call failed: \(error)")
+            Config.debugLog("Error type: \(type(of: error))")
+            Config.debugLog("Credit NOT deducted due to error")
             
             // Try to extract error details
             if let data = error as? Data {
                 let errorString = String(data: data, encoding: .utf8) ?? "Could not decode error"
-                print("❌ [SupabaseService] Error response (Data): \(errorString)")
+                Config.debugLog("Error response (Data): \(errorString)")
             }
             
             // Check if it's a URLError or other network error
             if let urlError = error as? URLError {
-                print("❌ [SupabaseService] URLError code: \(urlError.code)")
-                print("❌ [SupabaseService] URLError description: \(urlError.localizedDescription)")
+                Config.debugLog("URLError code: \(urlError.code)")
+                Config.debugLog("URLError description: \(urlError.localizedDescription)")
             }
-            
-            // Print full error details
-            print("❌ [SupabaseService] Full error: \(String(describing: error))")
             
             throw error
         }
@@ -349,25 +354,25 @@ class SupabaseService: ObservableObject {
         imageURL: String,
         options: [String: Any] = [:]
     ) async throws -> JobSubmissionResponse {
-        print("🔍 [SupabaseService V2] processImageDataV2 called with model: \(model)")
-        print("🔗 [SupabaseService V2] Image URL: \(imageURL)")
+        Config.debugLog("processImageDataV2 called with model: \(model)")
+        Config.debugLog("Image URL provided")
         
         // Check if user has credits (works for both authenticated and anonymous)
         guard await HybridCreditManager.shared.hasCredits() else {
-            print("❌ [SupabaseService V2] Insufficient credits")
+            Config.debugLog("Insufficient credits")
             throw SupabaseError.insufficientCredits
         }
         
         let creditsBefore = await HybridCreditManager.shared.credits
-        print("💳 [SupabaseService V2] Credits available: \(creditsBefore)")
+        Config.debugLog("Credits available: \(creditsBefore)")
         
         // Get user state from hybrid auth service
         let userState = HybridAuthService.shared.userState
         
         if userState.isAuthenticated {
-            print("✅ [SupabaseService V2] Authenticated user processing: \(userState.identifier)")
+            Config.debugLog("Authenticated user processing: \(userState.identifier.prefix(8))...")
         } else {
-            print("ℹ️ [SupabaseService V2] Anonymous user processing: \(userState.identifier)")
+            Config.debugLog("Anonymous user processing: \(userState.identifier.prefix(8))...")
         }
         
         // Use image URL directly (no base64 conversion needed)
@@ -384,13 +389,16 @@ class SupabaseService: ObservableObject {
             body["device_id"] = userState.identifier
         }
         
-        print("🔍 [SupabaseService V2] Calling V2 Edge Function...")
+        Config.debugLog("Calling V2 Edge Function...")
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
         do {
             // Use URLSession directly for V2 endpoint
-            let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/ai-process-v2")!
+            guard let functionURL = URL(string: "\(Config.supabaseURL)/functions/v1/ai-process-v2") else {
+                Config.debugLog("Failed to create ai-process-v2 URL")
+                throw SupabaseError.invalidURL
+            }
             var request = URLRequest(url: functionURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
@@ -404,98 +412,98 @@ class SupabaseService: ObservableObject {
                 throw SupabaseError.invalidResponse
             }
             
-            print("🔍 [SupabaseService V2] HTTP Status Code: \(httpResponse.statusCode)")
+            Config.debugLog("HTTP Status Code: \(httpResponse.statusCode)")
             
             // V2 returns 202 Accepted
             if httpResponse.statusCode == 202 {
-                print("✅ [SupabaseService V2] Job accepted (202)")
+                Config.debugLog("Job accepted (202)")
                 
                 // Debug: Print raw response
                 if let rawResponse = String(data: responseData, encoding: .utf8) {
-                    print("🔍 [DEBUG] Raw 202 response: \(rawResponse)")
+                    Config.debugLog("Raw 202 response: \(rawResponse)")
                 } else {
-                    print("❌ [DEBUG] Could not decode response data as UTF-8 string")
+                    Config.debugLog("Could not decode response data as UTF-8 string")
                 }
                 
                 // Enhanced debugging for decode process
-                print("🔍 [DEBUG] ===== DECODE PROCESS START =====")
-                print("🔍 [DEBUG] Attempting to decode into: JobSubmissionResponse")
-                print("🔍 [DEBUG] Response data size: \(responseData.count) bytes")
+                Config.debugLog("===== DECODE PROCESS START =====")
+                Config.debugLog("Attempting to decode into: JobSubmissionResponse")
+                Config.debugLog("Response data size: \(responseData.count) bytes")
                 
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
-                print("🔍 [DEBUG] Decoder configured with: convertFromSnakeCase")
+                Config.debugLog("Decoder configured with: convertFromSnakeCase")
                 
                 // Try to parse as JSON first to see structure
                 do {
                     if let jsonObject = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] {
-                        print("🔍 [DEBUG] JSON structure:")
+                        Config.debugLog("JSON structure:")
                         for (key, value) in jsonObject {
-                            print("🔍 [DEBUG]   '\(key)': \(value)")
+                            Config.debugLog("  '\(key)': \(value)")
                         }
                     }
                 } catch {
-                    print("❌ [DEBUG] Failed to parse as JSON object: \(error)")
+                    Config.debugLog("Failed to parse as JSON object: \(error)")
                 }
                 
-                print("🔍 [DEBUG] Starting decode into JobSubmissionResponse...")
+                Config.debugLog("Starting decode into JobSubmissionResponse...")
                 let response = try decoder.decode(JobSubmissionResponse.self, from: responseData)
-                print("🔍 [DEBUG] ===== DECODE SUCCESS =====")
-                print("🔍 [DEBUG] Decoded response: \(response)")
-                print("🔍 [DEBUG] ===== DECODE PROCESS END =====")
+                Config.debugLog("===== DECODE SUCCESS =====")
+                Config.debugLog("Decoded response: \(response)")
+                Config.debugLog("===== DECODE PROCESS END =====")
                 
                 // ✅ SPEND CREDIT IMMEDIATELY ON ACCEPTANCE
                 _ = try await HybridCreditManager.shared.spendCredit()
-                print("💳 [SupabaseService V2] Credit spent on job acceptance. Remaining: \(await HybridCreditManager.shared.credits)")
+                Config.debugLog("Credit spent on job acceptance. Remaining: \(await HybridCreditManager.shared.credits)")
                 
                 return response
             } else if httpResponse.statusCode == 429 {
                 // Rate limit or concurrent limit exceeded
                 if let errorString = String(data: responseData, encoding: .utf8) {
-                    print("❌ [SupabaseService V2] Rate limit: \(errorString)")
+                    Config.debugLog("Rate limit: \(errorString)")
                 }
                 throw SupabaseError.rateLimitExceeded
             } else {
                 // Other errors
                 if let errorString = String(data: responseData, encoding: .utf8) {
-                    print("❌ [SupabaseService V2] Error: \(errorString)")
+                    Config.debugLog("Error: \(errorString)")
                 }
                 throw SupabaseError.serverError("Failed to submit job")
             }
             
         } catch let error as SupabaseError {
-            print("❌ [SupabaseService V2] SupabaseError: \(error)")
+            Config.debugLog("SupabaseError: \(error)")
             throw error
         } catch DecodingError.keyNotFound(let key, let context) {
-            print("❌ [DEBUG] ===== DECODE ERROR: KEY NOT FOUND =====")
-            print("❌ [DEBUG] Missing key: '\(key)'")
-            print("❌ [DEBUG] Coding path: \(context.codingPath)")
-            print("❌ [DEBUG] Context description: \(context.debugDescription)")
-            print("❌ [DEBUG] ===== DECODE ERROR END =====")
+            Config.debugLog("===== DECODE ERROR: KEY NOT FOUND =====")
+            Config.debugLog("Missing key: '\(key)'")
+            Config.debugLog("Coding path: \(context.codingPath)")
+            Config.debugLog("Context description: \(context.debugDescription)")
+            Config.debugLog("===== DECODE ERROR END =====")
             throw SupabaseError.processingFailed("Key '\(key)' not found in response")
         } catch DecodingError.typeMismatch(let type, let context) {
-            print("❌ [DEBUG] ===== DECODE ERROR: TYPE MISMATCH =====")
-            print("❌ [DEBUG] Expected type: \(type)")
-            print("❌ [DEBUG] Coding path: \(context.codingPath)")
-            print("❌ [DEBUG] Context description: \(context.debugDescription)")
-            print("❌ [DEBUG] ===== DECODE ERROR END =====")
+            Config.debugLog("===== DECODE ERROR: TYPE MISMATCH =====")
+            Config.debugLog("Expected type: \(type)")
+            Config.debugLog("Coding path: \(context.codingPath)")
+            Config.debugLog("Context description: \(context.debugDescription)")
+            Config.debugLog("===== DECODE ERROR END =====")
             throw SupabaseError.processingFailed("Type mismatch: expected \(type)")
         } catch DecodingError.valueNotFound(let value, let context) {
-            print("❌ [DEBUG] ===== DECODE ERROR: VALUE NOT FOUND =====")
-            print("❌ [DEBUG] Missing value: \(value)")
-            print("❌ [DEBUG] Coding path: \(context.codingPath)")
-            print("❌ [DEBUG] Context description: \(context.debugDescription)")
-            print("❌ [DEBUG] ===== DECODE ERROR END =====")
+            Config.debugLog("===== DECODE ERROR: VALUE NOT FOUND =====")
+            Config.debugLog("Missing value: \(value)")
+            Config.debugLog("Coding path: \(context.codingPath)")
+            Config.debugLog("Context description: \(context.debugDescription)")
+            Config.debugLog("===== DECODE ERROR END =====")
             throw SupabaseError.processingFailed("Value '\(value)' not found")
         } catch DecodingError.dataCorrupted(let context) {
-            print("❌ [DEBUG] ===== DECODE ERROR: DATA CORRUPTED =====")
-            print("❌ [DEBUG] Context description: \(context.debugDescription)")
-            print("❌ [DEBUG] Coding path: \(context.codingPath)")
-            print("❌ [DEBUG] ===== DECODE ERROR END =====")
+            Config.debugLog("===== DECODE ERROR: DATA CORRUPTED =====")
+            Config.debugLog("Context description: \(context.debugDescription)")
+            Config.debugLog("Coding path: \(context.codingPath)")
+            Config.debugLog("===== DECODE ERROR END =====")
             throw SupabaseError.processingFailed("Data corrupted: \(context.debugDescription)")
         } catch {
-            print("❌ [SupabaseService V2] Unexpected error: \(error)")
-            print("❌ [DEBUG] Error type: \(type(of: error))")
+            Config.debugLog("Unexpected error: \(error)")
+            Config.debugLog("Error type: \(type(of: error))")
             throw error
         }
     }
@@ -506,7 +514,7 @@ class SupabaseService: ObservableObject {
         deviceId: String? = nil,
         onProgress: @escaping (JobStatusResponse) -> Void
     ) async throws -> JobStatusResponse {
-        print("🔄 [SupabaseService] Starting to poll job: \(jobId)")
+        Config.debugLog("Starting to poll job: \(jobId.prefix(8))...")
         
         var attempts = 0
         let maxAttempts = 120 // 10 minutes max (with exponential backoff)
@@ -525,7 +533,11 @@ class SupabaseService: ObservableObject {
                 
                 urlComponents.queryItems = queryItems
                 
-                var request = URLRequest(url: urlComponents.url!)
+                guard let url = urlComponents.url else {
+                    Config.debugLog("Failed to create job-status URL")
+                    throw SupabaseError.invalidURL
+                }
+                var request = URLRequest(url: url)
                 request.httpMethod = "GET"
                 request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
                 request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
@@ -536,17 +548,17 @@ class SupabaseService: ObservableObject {
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let status = try decoder.decode(JobStatusResponse.self, from: responseData)
                 
-                print("📊 [SupabaseService] Job status: \(status.status), elapsed: \(status.elapsedTime ?? 0)s")
+                Config.debugLog("Job status: \(status.status), elapsed: \(status.elapsedTime ?? 0)s")
                 
                 // Call progress callback
                 onProgress(status)
                 
                 // Check if done
                 if status.status == "completed" {
-                    print("✅ [SupabaseService] Job completed!")
+                    Config.debugLog("Job completed")
                     return status
                 } else if status.status == "failed" {
-                    print("❌ [SupabaseService] Job failed: \(status.errorMessage ?? "Unknown error")")
+                    Config.debugLog("Job failed: \(status.errorMessage ?? "Unknown error")")
                     throw SupabaseError.processingFailed(status.errorMessage ?? "Unknown error")
                 }
                 
@@ -562,7 +574,7 @@ class SupabaseService: ObservableObject {
             } catch let error as SupabaseError {
                 throw error
             } catch {
-                print("⚠️ [SupabaseService] Polling error (attempt \(attempts)): \(error)")
+                Config.debugLog("Polling error (attempt \(attempts)): \(error)")
                 
                 // Don't fail on network errors, just retry
                 if attempts >= maxAttempts - 1 {
@@ -574,7 +586,7 @@ class SupabaseService: ObservableObject {
             }
         }
         
-        print("⏱️ [SupabaseService] Polling timeout after \(attempts) attempts")
+        Config.debugLog("Polling timeout after \(attempts) attempts")
         throw SupabaseError.timeout
     }
     
@@ -594,7 +606,10 @@ class SupabaseService: ObservableObject {
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
-        let functionURL = URL(string: "\(Config.supabaseURL)/rest/v1/rpc/get_active_job_count")!
+        guard let functionURL = URL(string: "\(Config.supabaseURL)/rest/v1/rpc/get_active_job_count") else {
+            Config.debugLog("Failed to create get_active_job_count URL")
+            throw SupabaseError.invalidURL
+        }
         var request = URLRequest(url: functionURL)
         request.httpMethod = "POST"
         request.setValue("Bearer \(Config.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
@@ -624,8 +639,8 @@ class SupabaseService: ObservableObject {
             "resemblance": resemblance
         ]
         
-        print("🔍 [SupabaseService] Starting upscale with factor: \(upscaleFactor)")
-        print("🔍 [SupabaseService] Image data size: \(imageData.count) bytes")
+        Config.debugLog("Starting upscale with factor: \(upscaleFactor)")
+        Config.debugLog("Image data size: \(imageData.count) bytes")
         
         do {
             let response = try await processImageData(
@@ -633,13 +648,13 @@ class SupabaseService: ObservableObject {
                 imageData: imageData,
                 options: options
             )
-            print("✅ [SupabaseService] Upscale successful: \(response)")
+            Config.debugLog("Upscale successful")
             return response
         } catch {
-            print("❌ [SupabaseService] Upscale failed: \(error)")
-            print("❌ [SupabaseService] Error type: \(type(of: error))")
+            Config.debugLog("Upscale failed: \(error)")
+            Config.debugLog("Error type: \(type(of: error))")
             if let supabaseError = error as? SupabaseError {
-                print("❌ [SupabaseService] SupabaseError: \(supabaseError)")
+                Config.debugLog("SupabaseError: \(supabaseError)")
             }
             throw error
         }
@@ -654,9 +669,9 @@ class SupabaseService: ObservableObject {
         limit: Int = 50,
         offset: Int = 0
     ) async throws -> [JobRecord] {
-        print("📚 [SupabaseService] Fetching jobs for user: \(userState.identifier)")
-        print("🔍 [SupabaseService] User authenticated: \(userState.isAuthenticated)")
-        print("🔍 [SupabaseService] Query limit: \(limit), offset: \(offset)")
+        Config.debugLog("Fetching jobs for user: \(userState.identifier.prefix(8))...")
+        Config.debugLog("User authenticated: \(userState.isAuthenticated)")
+        Config.debugLog("Query limit: \(limit), offset: \(offset)")
         
         do {
             let decoder = JSONDecoder()
@@ -666,7 +681,7 @@ class SupabaseService: ObservableObject {
             
             if userState.isAuthenticated {
                 // Authenticated users: use direct table query
-                print("🔍 [SupabaseService] Querying by user_id: \(userState.identifier)")
+                Config.debugLog("Querying by user_id: \(userState.identifier.prefix(8))...")
                 
                 let query = client
                     .from("jobs")
@@ -677,39 +692,39 @@ class SupabaseService: ObservableObject {
                     .limit(limit)
                     .range(from: offset, to: offset + limit - 1)
                 
-                print("🔍 [SupabaseService] Executing authenticated query...")
+                Config.debugLog("Executing authenticated query")
                 response = try await query
                     .execute()
                     .value
                     
             } else {
                 // Anonymous users: use custom function to bypass RLS
-                print("🔍 [SupabaseService] Querying by device_id using function: \(userState.identifier)")
+                Config.debugLog("Querying by device_id using function: \(userState.identifier.prefix(8))...")
                 
-                print("🔍 [SupabaseService] Executing anonymous function query...")
+                Config.debugLog("Executing anonymous function query...")
                 response = try await client
                     .rpc("get_jobs_by_device_id", params: ["device_id_param": userState.identifier])
                     .execute()
                     .value
             }
             
-            print("✅ [SupabaseService] Fetched \(response.count) jobs")
+            Config.debugLog("Fetched \(response.count) jobs")
             
             // Debug: Print first few job details if any exist
             if !response.isEmpty {
-                print("🔍 [SupabaseService] First job details:")
+                Config.debugLog("First job details:")
                 for (index, job) in response.prefix(3).enumerated() {
-                    print("  Job \(index + 1): ID=\(job.id), user_id=\(job.userId?.uuidString ?? "nil"), device_id=\(job.deviceId ?? "nil"), status=\(job.status)")
+                    Config.debugLog("  Job \(index + 1): ID=\(String(job.id.uuidString.prefix(8)))..., status=\(job.status)")
                 }
             } else {
-                print("🔍 [SupabaseService] No jobs found in database")
+                Config.debugLog("No jobs found in database")
             }
             
             return response
             
         } catch {
-            print("❌ [SupabaseService] Failed to fetch jobs: \(error)")
-            print("❌ [SupabaseService] Error details: \(error.localizedDescription)")
+            Config.debugLog("Failed to fetch jobs: \(error)")
+            Config.debugLog("Error details: \(error)")
             throw error
         }
     }
@@ -751,6 +766,43 @@ class SupabaseService: ObservableObject {
             .update(profile)
             .eq("id", value: user.id.uuidString)
             .execute()
+    }
+    
+    // MARK: - Account Deletion
+    
+    /// Delete user account and all associated data
+    /// This method will be called by the RPC function that handles complete data cleanup
+    func deleteUserAccount() async throws {
+        Config.debugLog("Starting account deletion process...")
+        
+        guard let user = getCurrentUser() else {
+            Config.debugLog("No authenticated user found for deletion")
+            throw SupabaseError.notAuthenticated
+        }
+        
+        Config.debugLog("Deleting account for user: \(user.id.uuidString.prefix(8))...")
+        
+        do {
+            // Call the RPC function that handles complete account deletion
+            // This will delete all user data including:
+            // - User profile
+            // - Job history
+            // - Credit transactions
+            // - Storage files
+            // - Auth user record
+            let _ = try await client
+                .rpc("delete_user_account", params: ["user_id": user.id.uuidString])
+                .execute()
+            
+            Config.debugLog("Account deletion RPC completed successfully")
+            
+            // Account deletion completed
+            Config.debugLog("Account deletion completed successfully")
+            
+        } catch {
+            Config.debugLog("Account deletion error: \(error)")
+            throw error
+        }
     }
 }
 
@@ -931,6 +983,7 @@ enum SupabaseError: Error, LocalizedError {
     case processingFailed(String)
     case timeout
     case rateLimitExceeded
+    case invalidURL
     
     var errorDescription: String? {
         switch self {
@@ -950,6 +1003,30 @@ enum SupabaseError: Error, LocalizedError {
             return "Processing timed out. Please try again."
         case .rateLimitExceeded:
             return "You have too many jobs processing. Please wait for one to complete."
+        case .invalidURL:
+            return "Invalid URL configuration. Please contact support."
+        }
+    }
+    
+    /// Maps SupabaseError to user-friendly AppError
+    var appError: AppError {
+        switch self {
+        case .notAuthenticated, .noSession:
+            return .signInRequired
+        case .insufficientCredits:
+            return .insufficientCredits
+        case .timeout:
+            return .processingTimeout
+        case .processingFailed(let message):
+            return .processingFailed(message)
+        case .rateLimitExceeded:
+            return .dailyQuotaExceeded
+        case .serverError(let message):
+            return .unknown("Server error: \(message)")
+        case .invalidResponse:
+            return .invalidResponse
+        case .invalidURL:
+            return .serviceUnavailable
         }
     }
 }

@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var authService = HybridAuthService.shared
     @StateObject private var creditManager = HybridCreditManager.shared
     @StateObject private var themeManager = ThemeManager()
+    @StateObject private var adaptyService = AdaptyService.shared
     @State private var chatPrompt: String? = nil // For passing prompts to ChatView
     
     @Environment(\.colorScheme) var systemColorScheme
@@ -63,6 +64,15 @@ struct ContentView: View {
         .onAppear {
             themeManager.updateResolvedScheme(systemScheme: systemColorScheme)
             updateTabBarAppearance(for: themeManager.resolvedColorScheme)
+            
+            // Initialize AdaptyService after Adapty SDK is activated
+            Task {
+                do {
+                    try await adaptyService.initialize()
+                } catch {
+                    Config.debugLog("Failed to initialize AdaptyService: \(error)")
+                }
+            }
         }
     }
     

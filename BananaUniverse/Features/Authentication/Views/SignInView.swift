@@ -12,6 +12,7 @@ struct SignInView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var authService = HybridAuthService.shared
     @StateObject private var creditManager = HybridCreditManager.shared
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var email = ""
     @State private var password = ""
@@ -26,31 +27,35 @@ struct SignInView: View {
                 VStack(spacing: 8) {
                     Text(isSignUp ? "Create Account" : "Sign In")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                     
-                    Text("Sync your credits across devices")
+                    Text("Sync your progress across devices")
                         .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "A0A9B0"))
+                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                 }
                 .padding(.top, 40)
                 
-                // Current Credits Info
-                VStack(spacing: 8) {
+                // Value Proposition
+                VStack(spacing: 12) {
                     HStack {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(Color(hex: "33C3A4"))
-                        Text("Current Credits: \(creditManager.credits)")
+                        Image(systemName: "icloud.and.arrow.up")
+                            .foregroundColor(DesignTokens.Brand.primary(.light))
+                        Text("Never lose your work")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                     }
                     
-                    Text("Your credits will be synced to your account")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "A0A9B0"))
+                    HStack {
+                        Image(systemName: "lock.shield")
+                            .foregroundColor(DesignTokens.Brand.primary(.light))
+                        Text("Secure backup of your creations")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-                .background(Color(hex: "2C2F32"))
+                .background(Color(uiColor: .systemBackground))
                 .cornerRadius(12)
                 .padding(.horizontal, 20)
                 
@@ -61,16 +66,19 @@ struct SignInView: View {
                             .textFieldStyle(CustomTextFieldStyle())
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 20)
                     }
                     
                     TextField(isSignUp ? "Create Password" : "Password", text: $password)
                         .textFieldStyle(CustomTextFieldStyle())
-                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
                     
                     if !errorMessage.isEmpty {
                         Text(errorMessage)
                             .font(.system(size: 14))
-                            .foregroundColor(.red)
+                            .foregroundColor(DesignTokens.Semantic.error)
                             .padding(.horizontal, 20)
                     }
                     
@@ -87,12 +95,12 @@ struct SignInView: View {
                                     .scaleEffect(0.8)
                             }
                             Text(isSignUp ? "Create Account" : "Sign In")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 16, weight: .bold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color(hex: "4D7CFF"))
+                        .background(DesignTokens.Brand.primary(.light))
                         .cornerRadius(12)
                     }
                     .disabled(isLoading || email.isEmpty || password.isEmpty)
@@ -104,22 +112,23 @@ struct SignInView: View {
                         errorMessage = ""
                     }) {
                         Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "33C3A4"))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                            .underline()
                     }
                 }
                 
                 // Divider
                 HStack {
                     Rectangle()
-                        .fill(Color.white.opacity(0.2))
+                        .fill(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme))
                         .frame(height: 1)
                     Text("OR")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(hex: "A0A9B0"))
+                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                         .padding(.horizontal, 16)
                     Rectangle()
-                        .fill(Color.white.opacity(0.2))
+                        .fill(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme))
                         .frame(height: 1)
                 }
                 .padding(.horizontal, 20)
@@ -138,18 +147,22 @@ struct SignInView: View {
                 .signInWithAppleButtonStyle(.white)
                 .frame(height: 50)
                 .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme), lineWidth: 1)
+                )
                 .padding(.horizontal, 20)
                 
                 Spacer()
             }
-            .background(Color(hex: "0E1012"))
+            .background(DesignTokens.Background.primary(themeManager.resolvedColorScheme))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                 }
             }
         }
@@ -169,7 +182,8 @@ struct SignInView: View {
             // Migration will happen automatically in HybridAuthService
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Sign in failed"
         }
         
         isLoading = false
@@ -193,10 +207,12 @@ struct SignInView: View {
                 
                 dismiss()
             case .failure(let error):
-                errorMessage = error.localizedDescription
+                let appError = AppError.from(error)
+                errorMessage = appError.errorDescription ?? "Sign in failed"
             }
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Sign in failed"
         }
         
         isLoading = false
@@ -205,13 +221,19 @@ struct SignInView: View {
 
 // MARK: - Custom Text Field Style
 struct CustomTextFieldStyle: TextFieldStyle {
+    @EnvironmentObject var themeManager: ThemeManager
+    
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
-            .background(Color(hex: "2C2F32"))
+            .background(Color(uiColor: .systemBackground))
             .cornerRadius(12)
-            .foregroundColor(.white)
+            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme), lineWidth: 1)
+            )
     }
 }
 

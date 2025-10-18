@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings
+  BananaUniverse
+  
+  English localization strings for paywall
+  Created by AI Assistant on 14.10.2025.
+*/
+
+// MARK: - Paywall Header
+"paywall_title" = "Unlock Full Power";
+"paywall_subtitle" = "Get unlimited access to all premium features";
+
+// MARK: - Benefits
+"paywall_benefit_1_title" = "Unlimited AI image edits";
+"paywall_benefit_1_description" = "Process as many images as you want";
+"paywall_benefit_2_title" = "Faster processing priority";
+"paywall_benefit_2_description" = "Skip the queue and get results instantly";
+"paywall_benefit_3_title" = "Exclusive premium filters";
+"paywall_benefit_3_description" = "Access to advanced AI models and effects";
+
+// MARK: - Products
+"paywall_weekly_title" = "Weekly Pro";
+"paywall_weekly_description" = "Perfect for trying out premium features";
+"paywall_weekly_price" = "$4.99 / week";
+
+"paywall_yearly_title" = "Yearly Pro";
+"paywall_yearly_description" = "Best value - save 70% compared to weekly";
+"paywall_yearly_price" = "$79.99 / year";
+"paywall_yearly_savings" = "Save 70%";
+
+// MARK: - Trial Badge
+"paywall_trial_badge" = "3-Day Free Trial";
+"paywall_best_value_badge" = "BEST VALUE";
+
+// MARK: - CTA Button
+"paywall_cta_button" = "Unlock Premium";
+"paywall_cta_loading" = "Processing...";
+
+// MARK: - Footer Links
+"paywall_footer_terms" = "Terms of Service";
+"paywall_footer_privacy" = "Privacy Policy";
+"paywall_footer_restore" = "Restore Purchases";
+
+// MARK: - Success Messages
+"paywall_purchase_success" = "Welcome to Premium! You now have unlimited access to all features.";
+"paywall_restore_success" = "Purchases restored successfully! Welcome back to Premium.";
+
+// MARK: - Error Messages
+"paywall_error_purchase_failed" = "Purchase failed. Please check your App Store account and try again.";
+"paywall_error_restore_failed" = "No previous purchases found. Please check your App Store account.";
+"paywall_error_product_not_found" = "Product not available. Please try again later.";
+"paywall_error_generic" = "Something went wrong. Please try again.";
+
+// MARK: - Accessibility
+"paywall_accessibility_title" = "Premium subscription paywall";
+"paywall_accessibility_benefit" = "Premium benefit";
+"paywall_accessibility_product_card" = "Subscription option";
+"paywall_accessibility_selected_product" = "Selected subscription option";
+"paywall_accessibility_cta_button" = "Purchase premium subscription";
+"paywall_accessibility_restore_button" = "Restore previous purchases";
+"paywall_accessibility_terms_link" = "View terms of service";
+"paywall_accessibility_privacy_link" = "View privacy policy";
+

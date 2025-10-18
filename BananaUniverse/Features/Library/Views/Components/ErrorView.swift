@@ -33,8 +33,7 @@ struct ErrorView: View {
                 .padding(.horizontal, DesignTokens.Spacing.lg)
             
             Button(action: {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+                DesignTokens.Haptics.impact(.medium)
                 onRetry()
             }) {
                 HStack(spacing: DesignTokens.Spacing.sm) {

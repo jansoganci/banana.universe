@@ -19,7 +19,6 @@ class HybridCreditManager: ObservableObject {
     @Published var userState: UserState = .anonymous(deviceId: UUID().uuidString)
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var isUnlimitedMode: Bool = false
     
     // Credit costs
     private let FREE_CREDITS = 10
@@ -34,7 +33,6 @@ class HybridCreditManager: ObservableObject {
     
     private init() {
         self.supabase = SupabaseService.shared
-        loadUnlimitedMode()
         loadUserState()
         loadCredits()
     }
@@ -79,19 +77,10 @@ class HybridCreditManager: ObservableObject {
     }
     
     func hasCredits() -> Bool {
-        if isUnlimitedMode {
-            return true  // Unlimited mode - always has credits
-        }
         return credits > 0
     }
     
     func spendCredit() async throws -> Bool {
-        if isUnlimitedMode {
-            // Unlimited mode - don't spend credits
-            print("🚀 [HybridCreditManager] Unlimited mode - credit not spent")
-            return true
-        }
-        
         guard credits > 0 else {
             throw HybridCreditError.insufficientCredits
         }
@@ -118,27 +107,9 @@ class HybridCreditManager: ObservableObject {
             try await saveAuthenticatedCredits(userId: user.id)
         }
         
-        print("✅ [HybridCreditManager] Added \(amount) credits from \(source.rawValue). Total: \(credits)")
+        Config.debugLog("Added \(amount) credits from \(source.rawValue). Total: \(credits)")
     }
     
-    // MARK: - Unlimited Mode Management
-    
-    private func loadUnlimitedMode() {
-        isUnlimitedMode = UserDefaults.standard.bool(forKey: "unlimited_mode_enabled")
-        print("🔧 [HybridCreditManager] Loaded unlimited mode: \(isUnlimitedMode)")
-    }
-    
-    func enableUnlimitedMode() {
-        isUnlimitedMode = true
-        UserDefaults.standard.set(true, forKey: "unlimited_mode_enabled")
-        print("🚀 [HybridCreditManager] Unlimited mode ENABLED - Premium features active")
-    }
-    
-    func disableUnlimitedMode() {
-        isUnlimitedMode = false
-        UserDefaults.standard.set(false, forKey: "unlimited_mode_enabled")
-        print("🔄 [HybridCreditManager] Unlimited mode DISABLED - Free user limits active")
-    }
     
     // MARK: - Anonymous User Credits
     
@@ -155,7 +126,7 @@ class HybridCreditManager: ObservableObject {
                 
                 if let anonymousCredits = result.first {
                     credits = anonymousCredits.credits
-                    print("☁️ [HybridCreditManager] Loaded \(credits) anonymous credits from backend")
+                    Config.debugLog("Loaded \(credits) anonymous credits from backend")
                 } else {
                     // No backend record - check local storage
                     let localCredits = getLocalCredits(deviceId: deviceId)
@@ -167,11 +138,11 @@ class HybridCreditManager: ObservableObject {
                         // New user - give free credits
                         credits = FREE_CREDITS
                         try await createAnonymousCreditsRecord(deviceId: deviceId, initialCredits: FREE_CREDITS)
-                        print("🎁 [HybridCreditManager] Awarded \(FREE_CREDITS) free credits to new anonymous user")
+                        Config.debugLog("Awarded \(FREE_CREDITS) free credits to new anonymous user")
                     }
                 }
             } catch {
-                print("⚠️ [HybridCreditManager] Failed to load anonymous credits from backend: \(error)")
+                Config.debugLog("Failed to load anonymous credits from backend: \(error)")
                 // Fallback to local storage
                 credits = getLocalCredits(deviceId: deviceId)
                 if credits == 0 {
@@ -191,7 +162,7 @@ class HybridCreditManager: ObservableObject {
             do {
                 try await updateAnonymousCreditsBackend(deviceId: deviceId)
             } catch {
-                print("⚠️ [HybridCreditManager] Failed to sync anonymous credits to backend: \(error)")
+                Config.debugLog("Failed to sync anonymous credits to backend: \(error)")
             }
         }
     }
@@ -209,7 +180,7 @@ class HybridCreditManager: ObservableObject {
             .insert(anonymousCredits)
             .execute()
         
-        print("✅ [HybridCreditManager] Created anonymous credits record with \(initialCredits) credits")
+        Config.debugLog("Created anonymous credits record with \(initialCredits) credits")
     }
     
     private func updateAnonymousCreditsBackend(deviceId: String) async throws {
@@ -219,7 +190,7 @@ class HybridCreditManager: ObservableObject {
             .eq("device_id", value: deviceId)
             .execute()
         
-        print("☁️ [HybridCreditManager] Updated anonymous credits in backend: \(credits)")
+        Config.debugLog("Updated anonymous credits in backend: \(credits)")
     }
     
     // MARK: - Authenticated User Credits
@@ -235,13 +206,13 @@ class HybridCreditManager: ObservableObject {
             
             if let userCredits = result.first {
                 credits = userCredits.credits
-                print("☁️ [HybridCreditManager] Loaded \(credits) authenticated credits from backend")
+                Config.debugLog("Loaded \(credits) authenticated credits from backend")
             } else {
                 // New authenticated user - create record
                 try await createAuthenticatedCreditsRecord(userId: userId)
             }
         } catch {
-            print("⚠️ [HybridCreditManager] Failed to load authenticated credits from backend: \(error)")
+            Config.debugLog("Failed to load authenticated credits from backend: \(error)")
             // Fallback to local storage
             credits = getLocalCredits(deviceId: userState.identifier)
         }
@@ -257,7 +228,7 @@ class HybridCreditManager: ObservableObject {
             ])
             .execute()
         
-        print("☁️ [HybridCreditManager] Saved authenticated credits to backend: \(credits)")
+        Config.debugLog("Saved authenticated credits to backend: \(credits)")
     }
     
     private func createAuthenticatedCreditsRecord(userId: UUID) async throws {
@@ -276,7 +247,7 @@ class HybridCreditManager: ObservableObject {
             .execute()
         
         credits = initialCredits
-        print("✅ [HybridCreditManager] Created authenticated credits record with \(initialCredits) credits")
+        Config.debugLog("Created authenticated credits record with \(initialCredits) credits")
     }
     
     // MARK: - Migration (Anonymous → Authenticated)
@@ -288,7 +259,7 @@ class HybridCreditManager: ObservableObject {
         
         let localCredits = getLocalCredits(deviceId: deviceId)
         
-        print("🔄 [HybridCreditManager] Migrating \(localCredits) anonymous credits to authenticated account")
+        Config.debugLog("Migrating \(localCredits) anonymous credits to authenticated account")
         
         // Update user state
         userState = .authenticated(user: user)
@@ -305,7 +276,7 @@ class HybridCreditManager: ObservableObject {
         // Clear local anonymous credits
         clearLocalCredits(deviceId: deviceId)
         
-        print("✅ [HybridCreditManager] Migration complete")
+        Config.debugLog("Migration complete")
     }
     
     // MARK: - Local Storage Helpers
@@ -330,7 +301,7 @@ class HybridCreditManager: ObservableObject {
     
     private func saveLocalCredits(deviceId: String) {
         UserDefaults.standard.set(credits, forKey: "\(creditsKey)_\(deviceId)")
-        print("💾 [HybridCreditManager] Saved \(credits) credits locally for device: \(deviceId)")
+        Config.debugLog("Saved \(credits) credits locally for device: \(deviceId.prefix(8))...")
     }
     
     private func clearLocalCredits(deviceId: String) {
@@ -354,7 +325,8 @@ class HybridCreditManager: ObservableObject {
             
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Credit operation failed"
             isLoading = false
             throw error
         }
@@ -377,10 +349,11 @@ class HybridCreditManager: ObservableObject {
                 try await saveAuthenticatedCredits(userId: user.id)
             }
             
-            print("✅ [HybridCreditManager] Restored \(restoredCredits) credits")
+            Config.debugLog("Restored \(restoredCredits) credits")
             isLoading = false
         } catch {
-            errorMessage = "Failed to restore purchases: \(error.localizedDescription)"
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to restore purchases"
             isLoading = false
             throw error
         }
@@ -414,7 +387,7 @@ class HybridCreditManager: ObservableObject {
     
     private func trackPurchase(product: AdaptyPaywallProduct) {
         UserDefaults.standard.set(true, forKey: "has_purchased")
-        print("📊 [HybridCreditManager] Purchase tracked: \(product.vendorProductId)")
+        Config.debugLog("Purchase tracked: \(product.vendorProductId)")
     }
 }
 

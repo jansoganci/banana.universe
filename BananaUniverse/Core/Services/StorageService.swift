@@ -39,8 +39,9 @@ class StorageService: ObservableObject {
             
             return image
         } catch {
-            errorMessage = error.localizedDescription
-            throw error
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Storage operation failed"
+            throw appError
         }
     }
     
@@ -53,8 +54,9 @@ class StorageService: ObservableObject {
                 PHAssetCreationRequest.creationRequestForAsset(from: image)
             }
         } catch {
-            errorMessage = error.localizedDescription
-            throw error
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Storage operation failed"
+            throw appError
         }
     }
     

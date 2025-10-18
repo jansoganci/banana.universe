@@ -1,0 +1,252 @@
+{
+  "placementId": "home_get_pro",
+  "paywallAlias": "banana_main_paywall_v1",
+  "products": [
+    {
+      "productId": "banana_weekly",
+      "type": "subscription",
+      "displayName": "Weekly Pro",
+      "description": "Perfect for trying out premium features",
+      "price": 4.99,
+      "currency": "USD",
+      "period": "1 week",
+      "trialPeriod": null,
+      "isTrialAvailable": false,
+      "savings": null
+    },
+    {
+      "productId": "banana_yearly",
+      "type": "subscription",
+      "displayName": "Yearly Pro",
+      "description": "Best value - save 70% compared to weekly",
+      "price": 79.99,
+      "currency": "USD",
+      "period": "1 year",
+      "trialPeriod": "3 days",
+      "isTrialAvailable": true,
+      "savings": "Save 70%"
+    }
+  ],
+  "ab_tests": {
+    "A": {
+      "variant": "equal_layout",
+      "description": "Both subscription cards same size",
+      "allocation": 50,
+      "features": {
+        "cardSize": "equal",
+        "highlighting": false,
+        "trialBadge": false,
+        "bestValueBadge": false
+      }
+    },
+    "B": {
+      "variant": "annual_highlight",
+      "description": "Annual card highlighted with trial badge",
+      "allocation": 50,
+      "features": {
+        "cardSize": "annual_larger",
+        "highlighting": true,
+        "trialBadge": true,
+        "bestValueBadge": true,
+        "scaleFactor": 1.05,
+        "enhancedShadow": true
+      }
+    }
+  },
+  "localization": {
+    "en": {
+      "title": "Unlock Full Power",
+      "subtitle": "Get unlimited access to all premium features",
+      "benefits": [
+        {
+          "icon": "sparkles",
+          "title": "Unlimited AI image edits",
+          "description": "Process as many images as you want"
+        },
+        {
+          "icon": "bolt.fill",
+          "title": "Faster processing priority",
+          "description": "Skip the queue and get results instantly"
+        },
+        {
+          "icon": "star.fill",
+          "title": "Exclusive premium filters",
+          "description": "Access to advanced AI models and effects"
+        }
+      ],
+      "cta": "Unlock Premium",
+      "ctaLoading": "Processing...",
+      "footer": {
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy",
+        "restore": "Restore Purchases"
+      },
+      "badges": {
+        "trial": "3-Day Free Trial",
+        "bestValue": "BEST VALUE"
+      }
+    },
+    "tr": {
+      "title": "Tam Gücü Aç",
+      "subtitle": "Tüm premium özelliklere sınırsız erişim elde et",
+      "benefits": [
+        {
+          "icon": "sparkles",
+          "title": "Sınırsız AI görsel düzenleme",
+          "description": "İstediğiniz kadar görsel işleyin"
+        },
+        {
+          "icon": "bolt.fill",
+          "title": "Hızlı işleme önceliği",
+          "description": "Kuyruğu atlayın ve anında sonuç alın"
+        },
+        {
+          "icon": "star.fill",
+          "title": "Özel premium filtreler",
+          "description": "Gelişmiş AI modelleri ve efektlere erişim"
+        }
+      ],
+      "cta": "Premium'u Aç",
+      "ctaLoading": "İşleniyor...",
+      "footer": {
+        "terms": "Hizmet Şartları",
+        "privacy": "Gizlilik Politikası",
+        "restore": "Satın Alımları Geri Yükle"
+      },
+      "badges": {
+        "trial": "3 Günlük Ücretsiz Deneme",
+        "bestValue": "EN İYİ DEĞER"
+      }
+    }
+  },
+  "analytics": {
+    "events": {
+      "paywall_viewed": {
+        "description": "User viewed the paywall",
+        "properties": ["variant", "placement_id", "user_segment"]
+      },
+      "product_selected": {
+        "description": "User selected a subscription product",
+        "properties": ["product_id", "variant", "selection_time"]
+      },
+      "cta_tapped": {
+        "description": "User tapped the CTA button",
+        "properties": ["product_id", "variant", "time_to_tap"]
+      },
+      "purchase_completed": {
+        "description": "Purchase completed successfully",
+        "properties": ["product_id", "variant", "revenue", "trial_started"]
+      },
+      "purchase_failed": {
+        "description": "Purchase failed",
+        "properties": ["product_id", "variant", "error_code", "error_message"]
+      },
+      "restore_tapped": {
+        "description": "User tapped restore purchases",
+        "properties": ["variant", "time_to_restore"]
+      },
+      "restore_completed": {
+        "description": "Restore completed successfully",
+        "properties": ["variant", "restored_products"]
+      },
+      "terms_tapped": {
+        "description": "User tapped terms of service",
+        "properties": ["variant", "time_to_terms"]
+      },
+      "privacy_tapped": {
+        "description": "User tapped privacy policy",
+        "properties": ["variant", "time_to_privacy"]
+      }
+    },
+    "user_properties": [
+      "device_type",
+      "ios_version",
+      "app_version",
+      "user_segment",
+      "previous_purchases",
+      "session_count",
+      "time_since_install"
+    ],
+    "session_properties": [
+      "time_of_day",
+      "day_of_week",
+      "session_duration",
+      "previous_screen",
+      "network_type"
+    ]
+  },
+  "experiments": {
+    "conversion_rate": {
+      "primary_metric": true,
+      "target": 0.05,
+      "minimum_detectable_effect": 0.20,
+      "confidence_level": 0.95,
+      "statistical_power": 0.80
+    },
+    "revenue_per_user": {
+      "primary_metric": true,
+      "target": 0.50,
+      "minimum_detectable_effect": 0.20,
+      "confidence_level": 0.95,
+      "statistical_power": 0.80
+    },
+    "cta_tap_rate": {
+      "secondary_metric": true,
+      "target": 0.15,
+      "minimum_detectable_effect": 0.25,
+      "confidence_level": 0.95,
+      "statistical_power": 0.80
+    },
+    "trial_start_rate": {
+      "secondary_metric": true,
+      "target": 0.08,
+      "minimum_detectable_effect": 0.30,
+      "confidence_level": 0.95,
+      "statistical_power": 0.80
+    }
+  },
+  "sample_size": {
+    "minimum_per_variant": 2000,
+    "recommended_per_variant": 5000,
+    "maximum_duration_weeks": 6,
+    "early_stopping_minimum": 1000
+  },
+  "compliance": {
+    "apple_guidelines": {
+      "no_external_payments": true,
+      "apple_approved_links_only": true,
+      "clear_error_messaging": true,
+      "proper_accessibility": true,
+      "wcag_aa_compliance": true
+    },
+    "testflight_requirements": {
+      "realistic_ui": true,
+      "complete_purchase_flow": true,
+      "error_handling": true,
+      "localization_support": true,
+      "accessibility_compliance": true
+    }
+  },
+  "technical_specs": {
+    "swift_version": "5.9",
+    "ios_version": "16.0",
+    "dependencies": [
+      "SwiftUI",
+      "Adapty",
+      "Foundation"
+    ],
+    "performance": {
+      "load_time_ms": 500,
+      "purchase_simulation_ms": 1500,
+      "restore_simulation_ms": 1000,
+      "memory_usage_mb": 10
+    },
+    "accessibility": {
+      "voiceover_support": true,
+      "dynamic_type_support": true,
+      "high_contrast_support": true,
+      "minimum_touch_target_pt": 44
+    }
+  }
+}
+

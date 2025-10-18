@@ -54,6 +54,6 @@ CREATE TRIGGER update_daily_request_counts_updated_at
 COMMENT ON TABLE daily_request_counts IS 'Daily request counters for rate limiting in Steve Jobs style processing';
 
 -- Example usage:
--- Free users: 10 requests/day
+-- Free users: 5 requests/day
 -- Paid users: 100 requests/day
 -- Reset at midnight automatically

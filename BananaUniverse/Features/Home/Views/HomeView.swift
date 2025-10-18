@@ -22,7 +22,10 @@ struct HomeView: View {
                 UnifiedHeaderBar(
                     title: "",
                     leftContent: .appLogo(32),
-                    rightContent: .getProButton({ showPaywall = true })
+                    rightContent: .getProButton({ 
+                        showPaywall = true
+                        // TODO: insert Adapty Paywall ID here - placement: home_get_pro
+                    })
                 )
                 
                 // Category Tabs
@@ -87,6 +90,7 @@ struct HomeView: View {
     private func handleToolTap(_ tool: Tool) {
         if tool.requiresPro {
             showPaywall = true
+            // TODO: insert Adapty Paywall ID here - placement: home_tool_lock
         } else {
             // Navigate to Chat tab with the tool's prompt
             onToolSelected(tool.prompt)

@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
         
         userIdentifier = device_id;
         userType = 'anonymous';
-        dailyLimit = 10; // Free users get 10 requests/day
+        dailyLimit = 5; // Free users get 5 requests/day
         
         console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id);
       }
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
       
       userIdentifier = device_id;
       userType = 'anonymous';
-      dailyLimit = 10; // Free users get 10 requests/day
+      dailyLimit = 5; // Free users get 5 requests/day
       
       console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id);
     }

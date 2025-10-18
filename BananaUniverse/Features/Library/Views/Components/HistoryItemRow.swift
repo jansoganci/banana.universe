@@ -23,8 +23,7 @@ struct HistoryItemRow: View {
     var body: some View {
         Button(action: {
             // Haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            DesignTokens.Haptics.impact(.light)
             onSelect()
         }) {
             HStack(spacing: DesignTokens.Spacing.sm) {
@@ -80,32 +79,28 @@ struct HistoryItemRow: View {
                 // Action Menu
                 Menu {
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
+                        DesignTokens.Haptics.impact(.medium)
                         onRerun()
                     } label: {
                         Label("Re-run", systemImage: "arrow.clockwise")
                     }
                     
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                        DesignTokens.Haptics.impact(.light)
                         onShare()
                     } label: {
                         Label("Share", systemImage: "square.and.arrow.up")
                     }
                     
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                        DesignTokens.Haptics.impact(.light)
                         onDownload()
                     } label: {
                         Label("Download", systemImage: "arrow.down.circle")
                     }
                     
                     Button(role: .destructive) {
-                        let generator = UINotificationFeedbackGenerator()
-                        generator.notificationOccurred(.warning)
+                        DesignTokens.Haptics.warning()
                         onDelete()
                     } label: {
                         Label("Delete", systemImage: "trash")
