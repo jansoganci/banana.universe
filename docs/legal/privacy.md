@@ -7,18 +7,16 @@
 We collect minimal data necessary for app functionality:
 
 - **Email Address:** For account creation and authentication
+- **User ID/Identifier:** For account management and service access
 - **Photos:** For AI processing and enhancement
-- **Device ID:** For rate limiting and abuse prevention
 - **Purchase History:** For subscription management
-- **Usage Analytics:** Anonymous app performance data
 
 ## How We Use Your Data
 
 All data is used solely for app functionality:
 - Photos are processed by AI and stored temporarily (24 hours) or up to 30 days
-- Email is used for authentication only
+- Email and User ID are used for authentication and account management only
 - No data is sold or shared with third parties except our service providers
-- Analytics are used to improve app performance and user experience
 
 ## Service Providers
 
@@ -36,7 +34,6 @@ We work with trusted third-party services:
 - **Processed results:** 30 days (all users)
 - **Account data:** Until you delete your account
 - **Server logs:** 90 days (automatically deleted, unless required for security investigation or legal compliance)
-- **Analytics data:** 12 months (anonymized)
 
 ## Data Security
 
@@ -47,20 +44,14 @@ We implement industry-standard security measures:
 - **Access Controls:** Limited access to authorized personnel only
 - **Regular Audits:** Security practices reviewed regularly
 
-## Rate Limiting and Monitoring
+## What We Do NOT Collect
 
-Our abuse prevention systems collect minimal technical data:
-
-- **IP Addresses:** For rate limiting and security monitoring
-- **Request Timestamps:** For abuse pattern detection
-- **Usage Patterns:** For fair use enforcement
-- **No Personal Tracking:** Systems do not profile users personally
-
-This data is used exclusively for:
-- Preventing system abuse
-- Ensuring fair usage
-- Maintaining app stability
-- Security monitoring
+We do not collect:
+- Device identifiers or hardware information
+- Location data
+- Usage analytics or tracking data
+- Diagnostic information
+- Personal information beyond what is required for account creation and image processing
 
 ## Your Rights
 

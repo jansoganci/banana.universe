@@ -38,6 +38,30 @@
     },
     {
       "idiom": "iphone",
+      "filename": "Icon-App-58x58@2x.png",
+      "scale": "2x",
+      "size": "29x29"
+    },
+    {
+      "idiom": "iphone",
+      "filename": "Icon-App-87x87@3x.png",
+      "scale": "3x",
+      "size": "29x29"
+    },
+    {
+      "idiom": "iphone",
+      "filename": "Icon-App-80x80@2x.png",
+      "scale": "2x",
+      "size": "40x40"
+    },
+    {
+      "idiom": "iphone",
+      "filename": "Icon-App-120x120@3x.png",
+      "scale": "3x",
+      "size": "40x40"
+    },
+    {
+      "idiom": "iphone",
       "filename": "Icon-App-60x60@2x.png",
       "scale": "2x",
       "size": "60x60"

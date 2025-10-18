@@ -271,6 +271,25 @@ struct ImageUpscalerView: View {
     }
     
     private func upscaleImage() async {
+        // Check network connectivity before making API calls
+        guard NetworkMonitor.shared.checkConnectivity() else {
+            errorMessage = NetworkMonitor.shared.networkErrorMessage
+            return
+        }
+        
+        // Check image size limit (10MB)
+        guard let image = selectedImage else {
+            errorMessage = "Please select an image first"
+            return
+        }
+        
+        let maxSize = 10_000_000 // 10 MB
+        if let data = image.jpegData(compressionQuality: 1.0),
+           data.count > maxSize {
+            errorMessage = "🚫 Image too large (\(data.count / 1_000_000) MB). Please select an image under 10 MB."
+            return
+        }
+        
         // Check credits first (works for both anonymous and authenticated users)
         guard creditManager.hasCredits() else {
             errorMessage = "You don't have enough credits. Purchase more to continue!"
@@ -279,9 +298,8 @@ struct ImageUpscalerView: View {
             return
         }
         
-        guard let image = selectedImage,
-              let imageData = image.jpegData(compressionQuality: 0.8) else {
-            errorMessage = "Please select an image first"
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            errorMessage = "Failed to process image data"
             return
         }
         
@@ -388,7 +406,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     ImageUpscalerView(tool:     Tool(
         id: "image_upscaler",
         title: "Image Upscaler",
-                imageURL: nil as URL?,
+                imageURL: nil,
         category: "restoration",
         requiresPro: false,
         modelName: "upscale",

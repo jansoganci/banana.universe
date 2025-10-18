@@ -184,6 +184,22 @@ class ChatViewModel: ObservableObject {
     }
     
     private func processImage(_ image: UIImage) async {
+        // Check network connectivity before making API calls
+        guard NetworkMonitor.shared.checkConnectivity() else {
+            errorMessage = NetworkMonitor.shared.networkErrorMessage
+            jobStatus = .failed(error: NetworkMonitor.shared.networkErrorMessage)
+            return
+        }
+        
+        // Check image size limit (10MB)
+        let maxSize = 10_000_000 // 10 MB
+        if let data = image.jpegData(compressionQuality: 1.0),
+           data.count > maxSize {
+            errorMessage = "🚫 Image too large (\(data.count / 1_000_000) MB). Please select an image under 10 MB."
+            jobStatus = .failed(error: "Image too large")
+            return
+        }
+        
         jobStatus = .submitting
         errorMessage = nil
         uploadProgress = 0.0

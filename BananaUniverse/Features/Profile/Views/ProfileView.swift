@@ -61,7 +61,7 @@ struct ProfileView: View {
     
     @ViewBuilder
     private var profileContent: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        VStack(spacing: 0) {
             // Pro Card
             ProCard(
                 isProActive: viewModel.isPRO,
@@ -99,158 +99,118 @@ struct ProfileView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.md)
-            }
-            
-            // Restore Purchases Button
-            if !viewModel.isPRO {
-                Button {
-                    viewModel.restorePurchases()
-                } label: {
-                    Text("Restore Purchases")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(DesignTokens.Brand.primary(.light))
-                }
-                .padding(.top, DesignTokens.Spacing.sm)
+                .padding(.top, DesignTokens.Spacing.md)
             }
             
             // User State Section
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("Account")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                
                 VStack(spacing: 0) {
-                    // Credits Display
-                    HStack {
-                        Text("Credits:")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                        
-                        Spacer()
-                        
-                        Text("\(creditManager.credits)")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(DesignTokens.Brand.primary(.light))
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.md)
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.06))
-                    
-                    // Theme Selector
-                    HStack(spacing: 16) {
-                        Image(systemName: "paintbrush.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(DesignTokens.Brand.primary(.light))
-                            .frame(width: 24)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Theme")
-                                .font(.system(size: 16))
-                                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                            
-                            // Show subtitle only for Auto mode
-                            if themeManager.preference == .system {
-                                Text("(Follow System)")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Clean dropdown picker
-                        Menu {
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    themeManager.preference = .light
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "sun.max.fill")
-                                        .foregroundColor(.orange)
-                                    Text("Light")
-                                    if themeManager.preference == .light {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(DesignTokens.Brand.primary(.light))
-                                    }
-                                }
-                            }
-                            
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    themeManager.preference = .dark
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "moon.fill")
-                                        .foregroundColor(.blue)
-                                    Text("Dark")
-                                    if themeManager.preference == .dark {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(DesignTokens.Brand.primary(.light))
-                                    }
-                                }
-                            }
-                            
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    themeManager.preference = .system
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "circle.lefthalf.filled")
-                                        .foregroundColor(.gray)
-                                    Text("Auto")
-                                    if themeManager.preference == .system {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(DesignTokens.Brand.primary(.light))
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                // Theme icon
-                                Image(systemName: themeManager.preference.icon)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(DesignTokens.Brand.primary(.light))
-                                
-                                Text(themeManager.preference.displayName)
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                                
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(DesignTokens.Surface.secondary(themeManager.resolvedColorScheme))
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(DesignTokens.Brand.primary(.light).opacity(0.2), lineWidth: 1)
-                            )
-                        }
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .frame(height: 50)
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.06))
-                        .padding(.leading, 56)
                     
                 }
                 .background(DesignTokens.Background.tertiary(themeManager.resolvedColorScheme))
                 .cornerRadius(16)
                 .padding(.horizontal, DesignTokens.Spacing.md)
-                .padding(.bottom, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.sm)
+            
+            // Spacing between offer and account info (reduced)
+            if authService.isAuthenticated {
+                Spacer()
+                    .frame(height: DesignTokens.Spacing.sm)
+            }
+                
+                // User Info Section (for authenticated users)
+                if authService.isAuthenticated {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Account Info")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.top, DesignTokens.Spacing.md)
+                        
+                        VStack(spacing: 0) {
+                            // User Email
+                            HStack {
+                                Image(systemName: "envelope")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(DesignTokens.Brand.primary(.light))
+                                    .frame(width: 24)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Email")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                                    
+                                    Text(authService.currentUser?.email ?? "Unknown")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.md)
+                            
+                            Divider()
+                                .background(Color.white.opacity(0.06))
+                            
+                            // Credits Display
+                            HStack {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(DesignTokens.Brand.primary(.light))
+                                    .frame(width: 24)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Credits")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                                    
+                                    Text("\(creditManager.credits) available")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.md)
+                            
+                            Divider()
+                                .background(Color.white.opacity(0.06))
+                            
+                            // Logout Button
+                            Button(action: {
+                                Task {
+                                    try? await authService.signOut()
+                                }
+                            }) {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "arrow.right.square")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(DesignTokens.Semantic.warning)
+                                        .frame(width: 24)
+                                    
+                                    Text("Sign Out")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(DesignTokens.Semantic.warning)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal, DesignTokens.Spacing.md)
+                                .frame(height: 50)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .background(DesignTokens.Background.tertiary(themeManager.resolvedColorScheme))
+                        .cornerRadius(16)
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .padding(.bottom, DesignTokens.Spacing.sm)
+                    }
+                }
+                
+                // Spacing before Settings section (reduced)
+                Spacer()
+                    .frame(height: DesignTokens.Spacing.sm)
                 
                 // Settings Section
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -258,27 +218,13 @@ struct ProfileView: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                         .padding(.horizontal, DesignTokens.Spacing.md)
-                        .padding(.top, DesignTokens.Spacing.lg)
+                        .padding(.top, DesignTokens.Spacing.md)
                     
                     VStack(spacing: 0) {
-                        SettingsRow(icon: "person.circle", title: "Account Settings") {
-                            // Handle account settings
-                        }
-                        
-                        Divider()
-                            .background(Color.white.opacity(0.06))
-                            .padding(.leading, 56)
-                        
-                        SettingsRow(icon: "bell", title: "Notifications") {
-                            // Handle notifications
-                        }
-                        
-                        Divider()
-                            .background(Color.white.opacity(0.06))
-                            .padding(.leading, 56)
-                        
                         SettingsRow(icon: "questionmark.circle", title: "Help & Support") {
-                            // Handle help
+                            if let url = URL(string: "https://github.com/jansoganci/bananauniverse/blob/main/docs/legal/support.md") {
+                                UIApplication.shared.open(url)
+                            }
                         }
                         
                         Divider()
@@ -290,6 +236,121 @@ struct ProfileView: View {
                                 UIApplication.shared.open(url)
                             }
                         }
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.06))
+                            .padding(.leading, 56)
+                        
+                        // Restore Purchases Button (only for non-PRO users)
+                        if !viewModel.isPRO {
+                            SettingsRow(icon: "arrow.clockwise", title: "Restore Purchases") {
+                                viewModel.restorePurchases()
+                            }
+                        }
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.06))
+                            .padding(.leading, 56)
+                        
+                        // Theme Selector
+                        HStack(spacing: 16) {
+                            Image(systemName: "paintbrush.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(DesignTokens.Brand.primary(.light))
+                                .frame(width: 24)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Theme")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                                
+                                // Show subtitle only for Auto mode
+                                if themeManager.preference == .system {
+                                    Text("(Follow System)")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // Fixed dropdown picker with proper width and no background
+                            Menu {
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        themeManager.preference = .light
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "sun.max.fill")
+                                            .foregroundColor(.orange)
+                                        Text("Light")
+                                        if themeManager.preference == .light {
+                                            Spacer()
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(DesignTokens.Brand.primary(.light))
+                                        }
+                                    }
+                                }
+                                
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        themeManager.preference = .dark
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "moon.fill")
+                                            .foregroundColor(.blue)
+                                        Text("Dark")
+                                        if themeManager.preference == .dark {
+                                            Spacer()
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(DesignTokens.Brand.primary(.light))
+                                        }
+                                    }
+                                }
+                                
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        themeManager.preference = .system
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "circle.lefthalf.filled")
+                                            .foregroundColor(.gray)
+                                        Text("Auto")
+                                        if themeManager.preference == .system {
+                                            Spacer()
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(DesignTokens.Brand.primary(.light))
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    // Theme icon
+                                    Image(systemName: themeManager.preference.icon)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(DesignTokens.Brand.primary(.light))
+                                    
+                                    Text(themeManager.preference.displayName)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .frame(minWidth: 80)
+                            }
+                            .menuStyle(BorderlessButtonMenuStyle())
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .frame(height: 50)
                         
                         // Only show Delete Account for authenticated users
                         if authService.isAuthenticated {

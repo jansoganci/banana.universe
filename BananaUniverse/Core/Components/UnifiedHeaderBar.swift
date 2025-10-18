@@ -75,51 +75,48 @@ struct UnifiedHeaderBar: View {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 10))
                     Text("Get PRO")
-                        .font(DesignTokens.Typography.caption1)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                 .padding(.horizontal, DesignTokens.Spacing.md)
                 .padding(.vertical, DesignTokens.Spacing.sm)
-                .background(DesignTokens.Brand.primary(.light))
-                .cornerRadius(DesignTokens.CornerRadius.round)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(DesignTokens.Brand.primary(themeManager.resolvedColorScheme), lineWidth: 1)
+                        )
+                        .designShadow(DesignTokens.Shadow.sm)
+                )
             }
             
         case .quotaBadge(let quota, let action):
             Button(action: action) {
-                Text("\(quota) Free Edits")
-                    .font(DesignTokens.Typography.caption1)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                Text("Daily Credits: \(quota) / 10")
+                    .font(.system(size: 13, weight: .medium))
                     .lineLimit(1)
+                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                     .padding(.horizontal, DesignTokens.Spacing.md)
                     .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Brand.secondary)
-                    .cornerRadius(DesignTokens.CornerRadius.round)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
+                    )
             }
             
         case .unlimitedBadge(let action):
             Button(action: action) {
-                HStack(spacing: 6) {
-                    Image(systemName: "infinity")
-                        .font(.system(size: 12, weight: .semibold))
-                    
-                    Text("Unlimited")
-                        .font(DesignTokens.Typography.caption1)
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .padding(.horizontal, DesignTokens.Spacing.md)
-                .padding(.vertical, DesignTokens.Spacing.sm)
-                .background(
-                    LinearGradient(
-                        colors: [Color(hex: "FFD700"), Color(hex: "FFA500")],
-                        startPoint: .leading,
-                        endPoint: .trailing
+                Text("∞")
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                    .padding(.horizontal, DesignTokens.Spacing.md)
+                    .padding(.vertical, DesignTokens.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
                     )
-                )
-                .cornerRadius(DesignTokens.CornerRadius.round)
             }
             
         case .empty:

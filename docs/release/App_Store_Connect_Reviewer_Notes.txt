@@ -1,0 +1,34 @@
+REVIEWER NOTES FOR APP STORE CONNECT:
+
+Test Account:
+Email: reviewer@bananauniverse.com
+Password: TestAccount2024!
+(Account pre-loaded with 100 credits)
+
+Testing Instructions:
+1. App uses AI image processing (fal.ai) - results may take 20-30 seconds
+2. Free users get 10 credits, each process costs 1 credit
+3. To test premium features, use Sign in with Apple or test account
+4. Images over 10MB are rejected with clear error message
+5. Test subscription in Sandbox environment
+
+Key Features to Test:
+- Image enhancement and upscaling
+- Credit-based system (free vs premium)
+- Sign in with Apple authentication
+- Image library and management
+- Paywall and in-app purchases
+
+Known Issues:
+- None
+
+Contact:
+For urgent issues during review: support@bananauniverse.com
+Response time: < 24 hours
+
+Privacy:
+- We collect email only for authentication
+- Photos are processed via fal.ai API (encrypted)
+- We do not train AI models on user photos
+- Photos stored for 24 hours for free, 30 days for premium
+
