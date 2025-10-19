@@ -62,7 +62,7 @@ struct QuickAuthView: View {
                         // Apple Sign In
                         SignInWithAppleButton(
                             onRequest: { request in
-                                request.requestedScopes = [.email]
+                                request.requestedScopes = [.fullName, .email]
                             },
                             onCompletion: { result in
                                 handleAppleSignIn(result)
@@ -174,21 +174,29 @@ struct QuickAuthView: View {
     }
     
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success(let authorization):
-            // Handle Apple Sign In
-            // This requires additional setup with Supabase
-            // For now, show placeholder
-            errorMessage = "Apple Sign In coming soon! Please use email for now."
-            showError = true
-            
-            // TODO: Implement Apple Sign In with Supabase
-            // https://supabase.com/docs/guides/auth/social-login/auth-apple
-            
-        case .failure(let error):
-            let appError = AppError.from(error)
-            errorMessage = appError.errorDescription ?? "Authentication failed"
-            showError = true
+        Task {
+            do {
+                switch result {
+                case .success(let authorization):
+                    // Use the HybridAuthService's Apple Sign-In method directly
+                    try await authService.signInWithApple()
+                    
+                    // Give bonus credits for signing in
+                    try await creditManager.addCredits(10, source: .bonus)
+                    
+                    dismiss()
+                    onAuthSuccess()
+                    
+                case .failure(let error):
+                    let appError = AppError.from(error)
+                    errorMessage = appError.errorDescription ?? "Authentication failed"
+                    showError = true
+                }
+            } catch {
+                let appError = AppError.from(error)
+                errorMessage = appError.errorDescription ?? "Authentication failed"
+                showError = true
+            }
         }
     }
     

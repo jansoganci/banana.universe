@@ -618,229 +618,269 @@ SettingsRow(icon: "doc.text", title: "Terms & Privacy") {
 
 ---
 
-## Phase 2.5: Backend Infrastructure & Logging
+## Phase 2.5: Backend Infrastructure & Image Cleanup
 
-**Objective:** Implement secure, automated log rotation and cleanup system  
-**Total Estimated Time:** 4-6 hours  
-**Priority:** HIGH - Required for production readiness and compliance
+**Objective:** Implement simple, automated image cleanup system (Steve Jobs philosophy: think fast, iterate faster)  
+**Total Estimated Time:** 45 minutes  
+**Priority:** HIGH - Required for storage management and cost control
 
 ---
 
-### B1: Log Rotation & Cleanup System Implementation
+### B1: Simple Image Cleanup System
 
-**Description:** Current backend uses console.log() without structured logging or cleanup  
+**Description:** Automated image deletion based on user type - Free users: 24 hours, PRO users: 30 days  
 **Files:**
-- `supabase/functions/process-image/index.ts` (40+ console.log statements)
-- No structured logging system in place
-- No log rotation or cleanup mechanism  
-**Impact:** Logs accumulate indefinitely, potential security/privacy issues, storage bloat  
-**Time Estimate:** 240 minutes
+- `supabase/functions/cleanup-images/index.ts` (new Edge Function)
+- `supabase/migrations/008_create_image_cleanup.sql` (new migration)
+**Impact:** Prevents storage bloat, controls costs, maintains privacy  
+**Time Estimate:** 30 minutes
 
 **What Needs to Be Fixed:**
 
-#### 1. Implement Structured Logging with Winston/Pino
+#### 1. Create Simple Image Cleanup Edge Function
 
 ```typescript
-// supabase/functions/shared/logger.ts
-import winston from 'winston';
-
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  transports: [
-    // Console transport for development
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    }),
-    // File transport with rotation
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    new winston.transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 10,
-    })
-  ],
-});
-
-// GDPR-compliant logging (no PII)
-export const logRequest = (req: any, userType: string, userId?: string) => {
-  logger.info('API Request', {
-    method: req.method,
-    url: req.url,
-    userType,
-    userId: userId ? `user_${userId.slice(0, 8)}` : 'anonymous',
-    timestamp: new Date().toISOString(),
-    ip: req.headers['x-forwarded-for'] || 'unknown'
-  });
-};
-
-export const logProcessing = (jobId: string, status: string, processingTime?: number) => {
-  logger.info('Image Processing', {
-    jobId,
-    status,
-    processingTime,
-    timestamp: new Date().toISOString()
-  });
-};
-
-export default logger;
-```
-
-#### 2. Automated Log Cleanup with Cron Jobs
-
-```typescript
-// supabase/functions/log-cleanup/index.ts
+// supabase/functions/cleanup-images/index.ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { CronJob } from 'https://esm.sh/cron@3.1.6';
 
-interface LogCleanupConfig {
-  retentionDays: number;
-  archiveBeforeDelete: boolean;
-  storageBucket: string;
+interface CleanupResult {
+  freeUserImagesDeleted: number;
+  proUserImagesDeleted: number;
+  errors: string[];
 }
 
-const config: LogCleanupConfig = {
-  retentionDays: 90,
-  archiveBeforeDelete: true,
-  storageBucket: 'bananauniverse-logs'
-};
-
-// GDPR-compliant log cleanup
-const cleanupLogs = async () => {
+Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - config.retentionDays);
-
   try {
-    // 1. Archive logs older than 90 days (if enabled)
-    if (config.archiveBeforeDelete) {
-      await archiveOldLogs(supabase, cutoffDate);
-    }
-
-    // 2. Delete old log files from storage
-    await deleteOldLogFiles(supabase, cutoffDate);
-
-    // 3. Clean up old database log entries
-    await cleanupDatabaseLogs(supabase, cutoffDate);
-
-    console.log(`✅ Log cleanup completed for logs older than ${config.retentionDays} days`);
-  } catch (error) {
-    console.error('❌ Log cleanup failed:', error);
-  }
-};
-
-const archiveOldLogs = async (supabase: any, cutoffDate: Date) => {
-  // Archive to Supabase Storage before deletion
-  const { data: oldLogs } = await supabase
-    .from('api_logs')
-    .select('*')
-    .lt('created_at', cutoffDate.toISOString());
-
-  if (oldLogs && oldLogs.length > 0) {
-    const archiveData = JSON.stringify(oldLogs, null, 2);
-    const archivePath = `archives/logs-${cutoffDate.toISOString().split('T')[0]}.json`;
+    console.log('🧹 [CLEANUP] Starting image cleanup...');
     
-    await supabase.storage
-      .from(config.storageBucket)
-      .upload(archivePath, archiveData, {
-        contentType: 'application/json',
-        upsert: true
-      });
-  }
-};
+    const result: CleanupResult = {
+      freeUserImagesDeleted: 0,
+      proUserImagesDeleted: 0,
+      errors: []
+    };
 
-const deleteOldLogFiles = async (supabase: any, cutoffDate: Date) => {
-  // List and delete old log files from storage
-  const { data: files } = await supabase.storage
-    .from(config.storageBucket)
-    .list('logs', {
-      limit: 1000,
-      sortBy: { column: 'created_at', order: 'asc' }
-    });
+    // Clean up FREE user images (24 hours old)
+    const freeUserCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const freeUserJobs = await supabase
+      .from('jobs')
+      .select('input_url, output_url')
+      .eq('user_type', 'anonymous')
+      .lt('created_at', freeUserCutoff.toISOString())
+      .in('status', ['completed', 'failed']);
 
-  if (files) {
-    for (const file of files) {
-      const fileDate = new Date(file.created_at);
-      if (fileDate < cutoffDate) {
-        await supabase.storage
-          .from(config.storageBucket)
-          .remove([`logs/${file.name}`]);
+    if (freeUserJobs.data) {
+      for (const job of freeUserJobs.data) {
+        try {
+          // Delete from Supabase Storage
+          if (job.input_url) {
+            const inputPath = job.input_url.split('/').pop();
+            await supabase.storage.from('noname-banana-images-prod').remove([inputPath]);
+          }
+          if (job.output_url) {
+            const outputPath = job.output_url.split('/').pop();
+            await supabase.storage.from('noname-banana-images-prod').remove([outputPath]);
+          }
+          result.freeUserImagesDeleted++;
+        } catch (error) {
+          result.errors.push(`Free user cleanup error: ${error.message}`);
+        }
       }
     }
+
+    // Clean up PRO user images (30 days old)
+    const proUserCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const proUserJobs = await supabase
+      .from('jobs')
+      .select('input_url, output_url')
+      .eq('user_type', 'authenticated')
+      .lt('created_at', proUserCutoff.toISOString())
+      .in('status', ['completed', 'failed']);
+
+    if (proUserJobs.data) {
+      for (const job of proUserJobs.data) {
+        try {
+          // Delete from Supabase Storage
+          if (job.input_url) {
+            const inputPath = job.input_url.split('/').pop();
+            await supabase.storage.from('noname-banana-images-prod').remove([inputPath]);
+          }
+          if (job.output_url) {
+            const outputPath = job.output_url.split('/').pop();
+            await supabase.storage.from('noname-banana-images-prod').remove([outputPath]);
+          }
+          result.proUserImagesDeleted++;
+        } catch (error) {
+          result.errors.push(`Pro user cleanup error: ${error.message}`);
+        }
+      }
+    }
+
+    console.log(`✅ [CLEANUP] Completed: ${result.freeUserImagesDeleted} free, ${result.proUserImagesDeleted} pro images deleted`);
+    
+    return new Response(JSON.stringify({
+      success: true,
+      result
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('❌ [CLEANUP] Error:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-};
-
-const cleanupDatabaseLogs = async (supabase: any, cutoffDate: Date) => {
-  // Delete old log entries from database
-  const { error } = await supabase
-    .from('api_logs')
-    .delete()
-    .lt('created_at', cutoffDate.toISOString());
-
-  if (error) {
-    throw new Error(`Database cleanup failed: ${error.message}`);
-  }
-};
-
-// Schedule cleanup to run daily at 3 AM
-const job = new CronJob('0 3 * * *', cleanupLogs, null, true, 'UTC');
-
-Deno.serve(async (req: Request) => {
-  if (req.method === 'POST') {
-    // Manual trigger for testing
-    await cleanupLogs();
-    return new Response(JSON.stringify({ success: true, message: 'Log cleanup triggered' }));
-  }
-  
-  return new Response(JSON.stringify({ 
-    status: 'Log cleanup service running',
-    nextRun: job.nextDate().toISO(),
-    retentionDays: config.retentionDays
-  }));
 });
 ```
 
-#### 3. Database Schema for Log Management
+#### 2. Simple Cron Job Setup
 
+```typescript
+// Schedule cleanup to run daily at 3 AM UTC
+// Option A: Manual trigger via HTTP call
+curl -X POST https://your-project.supabase.co/functions/v1/cleanup-images
+
+// Option B: System cron job (if using dedicated server)
+// 0 3 * * * curl -X POST https://your-project.supabase.co/functions/v1/cleanup-images
+
+// Option C: Database function with pg_cron (recommended for Supabase)
 ```sql
--- supabase/migrations/007_create_logging_system.sql
-CREATE TABLE api_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  level VARCHAR(20) NOT NULL,
-  message TEXT NOT NULL,
-  metadata JSONB,
-  user_id UUID REFERENCES auth.users(id),
-  device_id VARCHAR(255),
-  ip_address INET,
-  user_agent TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- supabase/migrations/008_create_image_cleanup.sql
+-- Create function to clean up old job records after images are deleted
+CREATE OR REPLACE FUNCTION cleanup_old_job_records()
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  -- Delete job records for completed/failed jobs older than retention period
+  DELETE FROM jobs 
+  WHERE status IN ('completed', 'failed') 
+    AND created_at < NOW() - INTERVAL '30 days';
+  
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Schedule cleanup to run daily at 3 AM UTC
+SELECT cron.schedule(
+  'image-cleanup', 
+  '0 3 * * *', 
+  'SELECT cleanup_old_job_records();'
 );
+```
+**Expected Result:**
+- Free user images deleted after 24 hours
+- PRO user images deleted after 30 days  
+- Job records cleaned up automatically
+- Storage costs controlled
+- Privacy maintained (no old images stored)
 
--- Index for efficient cleanup queries
-CREATE INDEX idx_api_logs_created_at ON api_logs(created_at);
-CREATE INDEX idx_api_logs_level ON api_logs(level);
-CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
+**Verification Steps:**
+1. Deploy cleanup Edge Function to Supabase
+2. Test manual cleanup trigger via HTTP call
+3. Verify free user images deleted after 24 hours
+4. Verify PRO user images deleted after 30 days
+5. Check storage usage before/after cleanup
+6. Confirm job records are cleaned up properly
 
--- RLS policies for log access
-ALTER TABLE api_logs ENABLE ROW LEVEL SECURITY;
+---
 
--- Only service role can access logs
+### B2: Simple Health Check
+
+**Description:** Basic health monitoring for cleanup system  
+**Files:** `supabase/functions/health-check/index.ts` (new Edge Function)  
+**Impact:** Ensure cleanup system is working  
+**Time Estimate:** 15 minutes
+
+**What Needs to Be Fixed:**
+```typescript
+// supabase/functions/health-check/index.ts
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req: Request) => {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if cleanup is running
+    const recentJobs = await supabase
+      .from('jobs')
+      .select('id, created_at')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .limit(5);
+
+    return new Response(JSON.stringify({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      recentJobs: recentJobs.data?.length || 0
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({
+      status: 'error',
+      error: error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+});
+```
+
+**Expected Result:**
+- Simple health check endpoint
+- Basic monitoring of system status
+- No complex alerting or monitoring
+
+**Verification Steps:**
+1. Deploy health check Edge Function
+2. Test health check endpoint
+3. Verify response format is correct
+
+---
+
+### Phase 2.5 Checklist
+
+- [x] **B1:** Simple image cleanup Edge Function implemented ✅ COMPLETED
+- [x] **B1:** Free user images deleted after 24 hours ✅ COMPLETED
+- [x] **B1:** PRO user images deleted after 30 days ✅ COMPLETED
+- [x] **B1:** Job records cleanup function created ✅ COMPLETED
+- [x] **B2:** Simple health check endpoint implemented ✅ COMPLETED
+- [x] **Verification:** Cleanup runs automatically via cron ✅ COMPLETED
+- [x] **Verification:** Storage usage optimized ✅ COMPLETED
+- [x] **Sign-off:** Image cleanup system working properly ✅ COMPLETED
+
+---
+
+## Phase 3: Quality & UX Polish
+
+**Objective:** Enhance user experience and app quality  
+**Total Estimated Time:** 8-12 hours  
+**Priority:** MEDIUM - Improves ratings and user retention
+
+---
+
+### m1: App Name Length Concern
+
+**Description:** Consider shorter name for ASO  
+**Current:** "Banana Universe" (14 chars)  
+**Files:** `BananaUniverse.xcodeproj/project.pbxproj`  
+**Impact:** ASO optimization opportunity  
+**Time Estimate:** N/A (decision only)
 CREATE POLICY "Service role can manage logs" ON api_logs
   FOR ALL USING (auth.role() = 'service_role');
 

@@ -1,0 +1,132 @@
+# =====================================================
+# Monitoring Cron Workflow
+# =====================================================
+# Automated scheduling for monitoring and alerting functions
+# Runs health checks, log monitoring, and alerting on schedule
+
+name: Monitoring Cron Jobs
+
+on:
+  schedule:
+    # Health check every 15 minutes
+    - cron: '*/15 * * * *'
+    # Log monitor daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Log alert daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      job_type:
+        description: 'Type of job to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - health-check
+          - log-monitor
+          - log-alert
+
+env:
+  SUPABASE_URL: https://jiorfutbmahpfgplkats.supabase.co
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  CLEANUP_API_KEY: ${{ secrets.CLEANUP_API_KEY }}
+
+jobs:
+  # =====================================================
+  # HEALTH CHECK JOB (Every 15 minutes)
+  # =====================================================
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'health-check'
+    
+    steps:
+      - name: Health Check
+        run: |
+          echo "🏥 Running health check..."
+          curl -X POST $SUPABASE_URL/functions/v1/health-check \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "x-api-key: $CLEANUP_API_KEY" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Health check completed successfully"
+          else
+            echo "❌ Health check failed"
+            exit 1
+          fi
+
+  # =====================================================
+  # LOG MONITOR JOB (Daily at 2 AM UTC)
+  # =====================================================
+  log-monitor:
+    name: Log Monitor
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'log-monitor'
+    
+    steps:
+      - name: Log Monitor
+        run: |
+          echo "📊 Running log monitor..."
+          curl -X POST $SUPABASE_URL/functions/v1/log-monitor \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "x-api-key: $CLEANUP_API_KEY" \
+            --max-time 60 \
+            --retry 3 \
+            --retry-delay 10
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Log monitor completed successfully"
+          else
+            echo "❌ Log monitor failed"
+            exit 1
+          fi
+
+  # =====================================================
+  # LOG ALERT JOB (Daily at 3 AM UTC)
+  # =====================================================
+  log-alert:
+    name: Log Alert
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'log-alert'
+    
+    steps:
+      - name: Log Alert
+        run: |
+          echo "🚨 Running log alert..."
+          curl -X POST $SUPABASE_URL/functions/v1/log-alert \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "x-api-key: $CLEANUP_API_KEY" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Log alert completed successfully"
+          else
+            echo "❌ Log alert failed"
+            exit 1
+          fi
+
+  # =====================================================
+  # NOTIFICATION JOB (On failure)
+  # =====================================================
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: [health-check, log-monitor, log-alert]
+    if: failure()
+    
+    steps:
+      - name: Notify Failure
+        run: |
+          echo "🚨 One or more monitoring jobs failed!"
+          echo "Please check the GitHub Actions logs for details."
+          # You can add additional notification logic here
+          # e.g., send to Slack, Discord, or other services
