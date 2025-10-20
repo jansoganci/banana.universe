@@ -70,12 +70,12 @@ struct ChatContainerView: View {
                     UnifiedHeaderBar(
                         title: "",  // Empty title since logo serves as identifier
                         leftContent: .appLogo(32),
-                        rightContent: AdaptyService.shared.isProUser 
+                        rightContent: viewModel.isPremiumUser 
                             ? .unlimitedBadge({ 
                                 // PRO users can tap to see subscription details
                                 // Could open manage subscription or show info
                             })
-                            : .quotaBadge(viewModel.remainingQuota, { 
+                            : .quotaBadge(viewModel.remainingQuota, viewModel.dailyQuotaLimit, { 
                                 viewModel.showingPaywall = true
                                 // TODO: insert Adapty Paywall ID here - placement: chat_quota_exceeded
                             })

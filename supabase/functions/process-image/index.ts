@@ -9,7 +9,8 @@ interface ProcessImageRequest {
   image_url: string;
   prompt: string;
   device_id?: string; // For anonymous users
-  user_type?: 'authenticated' | 'anonymous';
+  user_id?: string; // For authenticated users
+  is_premium?: boolean; // Premium user status
 }
 
 interface ProcessImageResponse {
@@ -17,10 +18,12 @@ interface ProcessImageResponse {
   processed_image_url?: string;
   job_id?: string; // Database job ID for tracking
   error?: string;
-  rate_limit_info?: {
-    requests_today: number;
-    limit: number;
-    reset_time: string;
+  quota_info?: {
+    credits: number;
+    quota_used: number;
+    quota_limit: number;
+    quota_remaining: number;
+    is_premium: boolean;
   };
 }
 
@@ -44,7 +47,7 @@ Deno.serve(async (req: Request) => {
     // ============================================
     
     const requestData: ProcessImageRequest = await req.json();
-    const { image_url, prompt, device_id } = requestData;
+    const { image_url, prompt, device_id, user_id, is_premium } = requestData;
     
     if (!image_url || !prompt) {
       return new Response(
@@ -71,7 +74,7 @@ Deno.serve(async (req: Request) => {
     
     let userIdentifier: string;
     let userType: 'authenticated' | 'anonymous';
-    let dailyLimit: number;
+    let isPremium: boolean;
     
     // Check for JWT token (authenticated user)
     const authHeader = req.headers.get('authorization');
@@ -84,11 +87,11 @@ Deno.serve(async (req: Request) => {
           throw new Error('Invalid token');
         }
         
-        userIdentifier = user.id;
+        userIdentifier = user_id || user.id;
         userType = 'authenticated';
-        dailyLimit = 100; // Paid users get 100 requests/day
+        isPremium = is_premium || false;
         
-        console.log('✅ [STEVE-JOBS] Authenticated user:', user.id);
+        console.log('✅ [STEVE-JOBS] Authenticated user:', user.id, 'Premium:', isPremium);
       } catch (error) {
         // If JWT fails, check for device_id (anonymous user)
         if (!device_id) {
@@ -100,9 +103,9 @@ Deno.serve(async (req: Request) => {
         
         userIdentifier = device_id;
         userType = 'anonymous';
-        dailyLimit = 5; // Free users get 5 requests/day
+        isPremium = is_premium || false;
         
-        console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id);
+        console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id, 'Premium:', isPremium);
       }
     } else {
       // No auth header, check for device_id (anonymous user)
@@ -115,60 +118,134 @@ Deno.serve(async (req: Request) => {
       
       userIdentifier = device_id;
       userType = 'anonymous';
-      dailyLimit = 5; // Free users get 5 requests/day
+      isPremium = is_premium || false;
       
-      console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id);
+      console.log('🔓 [STEVE-JOBS] Anonymous user:', device_id, 'Premium:', isPremium);
     }
     
     // ============================================
-    // 4. RATE LIMITING CHECK
+    // 4. CREDIT & QUOTA VALIDATION
     // ============================================
     
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    console.log('💳 [STEVE-JOBS] Validating credits and quota...');
     
-    // Get today's request count
-    const { data: rateLimitData, error: rateLimitError } = await supabase
-      .from('daily_request_counts')
-      .select('request_count')
-      .eq('user_identifier', userIdentifier)
-      .eq('request_date', today)
-      .single();
+    let quotaValidation: any;
     
-    const requestsToday = rateLimitData?.request_count || 0;
+    if (userType === 'authenticated') {
+      const { data, error } = await supabase.rpc('validate_user_daily_quota', {
+        p_user_id: userIdentifier,
+        p_is_premium: isPremium
+      });
+      
+      if (error) {
+        console.error('❌ [STEVE-JOBS] Quota validation error:', error);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Quota validation failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      quotaValidation = data;
+    } else {
+      const { data, error } = await supabase.rpc('validate_anonymous_daily_quota', {
+        p_device_id: userIdentifier,
+        p_is_premium: isPremium
+      });
+      
+      if (error) {
+        console.error('❌ [STEVE-JOBS] Quota validation error:', error);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Quota validation failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      quotaValidation = data;
+    }
     
-    if (requestsToday >= dailyLimit) {
-      console.log(`❌ [STEVE-JOBS] Rate limit exceeded for ${userType} user: ${requestsToday}/${dailyLimit}`);
+    if (!quotaValidation.valid) {
+      console.log(`❌ [STEVE-JOBS] Quota validation failed: ${quotaValidation.error}`);
       
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Daily rate limit exceeded',
-          rate_limit_info: {
-            requests_today: requestsToday,
-            limit: dailyLimit,
-            reset_time: tomorrow + 'T00:00:00Z'
+          error: quotaValidation.error,
+          quota_info: {
+            credits: quotaValidation.credits,
+            quota_used: quotaValidation.quota_used,
+            quota_limit: quotaValidation.quota_limit,
+            quota_remaining: quotaValidation.quota_remaining,
+            is_premium: isPremium
           }
         }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`✅ [STEVE-JOBS] Rate limit OK: ${requestsToday + 1}/${dailyLimit} for ${userType} user`);
+    console.log(`✅ [STEVE-JOBS] Quota validation passed: ${quotaValidation.credits} credits, ${quotaValidation.quota_used}/${quotaValidation.quota_limit} quota`);
     
     // ============================================
-    // 5. UPDATE RATE LIMIT COUNTER
+    // 5. CONSUME CREDIT AND UPDATE QUOTA
     // ============================================
     
-    await supabase
-      .from('daily_request_counts')
-      .upsert({
-        user_identifier: userIdentifier,
-        user_type: userType,
-        request_date: today,
-        request_count: requestsToday + 1,
-        updated_at: new Date().toISOString()
+    console.log('💳 [STEVE-JOBS] Consuming credit and updating quota...');
+    
+    let creditConsumption: any;
+    
+    if (userType === 'authenticated') {
+      const { data, error } = await supabase.rpc('consume_credit_with_quota', {
+        p_user_id: userIdentifier,
+        p_device_id: null,
+        p_is_premium: isPremium
       });
+      
+      if (error) {
+        console.error('❌ [STEVE-JOBS] Credit consumption error:', error);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Credit consumption failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      creditConsumption = data;
+    } else {
+      const { data, error } = await supabase.rpc('consume_credit_with_quota', {
+        p_user_id: null,
+        p_device_id: userIdentifier,
+        p_is_premium: isPremium
+      });
+      
+      if (error) {
+        console.error('❌ [STEVE-JOBS] Credit consumption error:', error);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Credit consumption failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      creditConsumption = data;
+    }
+    
+    if (!creditConsumption.success) {
+      console.log(`❌ [STEVE-JOBS] Credit consumption failed: ${creditConsumption.error}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: creditConsumption.error,
+          quota_info: {
+            credits: creditConsumption.credits,
+            quota_used: creditConsumption.quota_used,
+            quota_limit: creditConsumption.quota_limit,
+            quota_remaining: creditConsumption.quota_remaining,
+            is_premium: isPremium
+          }
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`✅ [STEVE-JOBS] Credit consumed successfully: ${creditConsumption.credits} credits remaining`);
     
     // ============================================
     // 6. GENERATE JOB ID & TRACK START TIME
@@ -351,10 +428,12 @@ Deno.serve(async (req: Request) => {
       success: true,
       processed_image_url: urlData.signedUrl,
       job_id: jobId,
-      rate_limit_info: {
-        requests_today: requestsToday + 1,
-        limit: dailyLimit,
-        reset_time: tomorrow + 'T00:00:00Z'
+      quota_info: {
+        credits: creditConsumption.credits,
+        quota_used: creditConsumption.quota_used,
+        quota_limit: creditConsumption.quota_limit,
+        quota_remaining: creditConsumption.quota_remaining,
+        is_premium: isPremium
       }
     };
     

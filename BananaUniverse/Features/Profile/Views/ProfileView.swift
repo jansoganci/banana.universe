@@ -9,12 +9,18 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
-    @StateObject private var authService = HybridAuthService.shared
+    @ObservedObject private var authService = HybridAuthService.shared
     @StateObject private var creditManager = HybridCreditManager.shared
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showPaywall = false
     @State private var showSignIn = false
+    @State private var authStateRefreshTrigger = false
     @Environment(\.openURL) var openURL
+    
+    // Debug: Track auth state changes
+    private var authDebugInfo: String {
+        "Auth: \(authService.isAuthenticated ? "✅" : "❌") | User: \(authService.currentUser?.email ?? "nil")"
+    }
     
     var body: some View {
         NavigationView {
@@ -22,9 +28,18 @@ struct ProfileView: View {
                 // Header Bar
                 UnifiedHeaderBar(title: "Profile")
                 
+                // Debug Info (temporary)
+                if Config.isDebug {
+                    Text(authDebugInfo)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                }
+                
                 // Main Content
                 ScrollView {
                     profileContent
+                        .id(authStateRefreshTrigger) // Force refresh when auth state changes
                 }
             }
             .background(DesignTokens.Background.primary(themeManager.resolvedColorScheme))
@@ -36,6 +51,13 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showSignIn) {
             SignInView()
+        }
+        .onReceive(authService.$userState) { newState in
+            // Force UI refresh by toggling the trigger
+            authStateRefreshTrigger.toggle()
+            Task {
+                await viewModel.onAuthStateChanged(newState)
+            }
         }
         .alert("Restore Purchases", isPresented: $viewModel.showAlert) {
             Button("OK", role: .cancel) { }
@@ -153,27 +175,8 @@ struct ProfileView: View {
                             Divider()
                                 .background(Color.white.opacity(0.06))
                             
-                            // Credits Display
-                            HStack {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(DesignTokens.Brand.primary(.light))
-                                    .frame(width: 24)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Credits")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                                    
-                                    Text("\(creditManager.credits) available")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                                }
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.md)
+                            // Quota Display
+                            QuotaDisplayView(style: .detailed)
                             
                             Divider()
                                 .background(Color.white.opacity(0.06))

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AuthenticationServices
+import CryptoKit
 
 /// Quick authentication view shown during purchase flow
 struct QuickAuthView: View {
@@ -19,10 +20,23 @@ struct QuickAuthView: View {
     @State private var isSignUp = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var currentNonce: String? = nil
     
     @Environment(\.dismiss) var dismiss
     
     var onAuthSuccess: () -> Void
+    
+    // MARK: - Computed Properties
+    
+    private var isFormValid: Bool {
+        !email.isEmpty && !password.isEmpty && isValidEmail(email)
+    }
+    
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
+    }
     
     var body: some View {
         NavigationView {
@@ -51,7 +65,7 @@ struct QuickAuthView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         BenefitRow(icon: "checkmark.icloud", text: "Sync across iPhone, iPad, and future devices")
                         BenefitRow(icon: "arrow.clockwise", text: "Automatic backup and restore")
-                        BenefitRow(icon: "gift", text: "Get +20% bonus credits when you sign in")
+                        BenefitRow(icon: "gift", text: "Get started with free credits")
                         BenefitRow(icon: "lock.shield", text: "Secure and private - your data stays protected")
                     }
                     .padding(.horizontal)
@@ -63,6 +77,9 @@ struct QuickAuthView: View {
                         SignInWithAppleButton(
                             onRequest: { request in
                                 request.requestedScopes = [.fullName, .email]
+                                let raw = NonceGenerator.generate()
+                                self.currentNonce = raw
+                                request.nonce = NonceGenerator.sha256(raw)
                             },
                             onCompletion: { result in
                                 handleAppleSignIn(result)
@@ -111,10 +128,10 @@ struct QuickAuthView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(DesignTokens.Brand.primary(.light))
+                        .background(isFormValid ? DesignTokens.Brand.primary(.light) : DesignTokens.Brand.primary(.light).opacity(0.6))
                         .foregroundColor(.white)
                         .cornerRadius(10)
-                        .disabled(email.isEmpty || password.isEmpty || authService.isLoading)
+                        .disabled(!isFormValid || authService.isLoading)
                         
                         Button(action: { isSignUp.toggle() }) {
                             Text(isSignUp ? "Already have an account? Sign In" : "New here? Create Account")
@@ -159,9 +176,6 @@ struct QuickAuthView: View {
                 // Migrate anonymous credits
                 // Migration is handled automatically by HybridAuthService
                 
-                // Give bonus credits for signing in
-                try await creditManager.addCredits(10, source: .bonus)
-                
                 dismiss()
                 onAuthSuccess()
                 
@@ -178,28 +192,57 @@ struct QuickAuthView: View {
             do {
                 switch result {
                 case .success(let authorization):
-                    // Use the HybridAuthService's Apple Sign-In method directly
-                    try await authService.signInWithApple()
-                    
-                    // Give bonus credits for signing in
-                    try await creditManager.addCredits(10, source: .bonus)
+                    guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                          let tokenData = credential.identityToken,
+                          let idToken = String(data: tokenData, encoding: .utf8) else {
+                        errorMessage = HybridAuthError.invalidAppleCredential.errorDescription ?? "Apple Sign-In failed"
+                        showError = true
+                        return
+                    }
+                    let nonce = currentNonce
+                    try await authService.signInWithApple(idToken: idToken, nonce: nonce)
                     
                     dismiss()
                     onAuthSuccess()
                     
                 case .failure(let error):
                     let appError = AppError.from(error)
-                    errorMessage = appError.errorDescription ?? "Authentication failed"
+                    errorMessage = appError.errorDescription ?? "Apple Sign-In failed"
                     showError = true
                 }
             } catch {
                 let appError = AppError.from(error)
-                errorMessage = appError.errorDescription ?? "Authentication failed"
+                errorMessage = appError.errorDescription ?? "Apple Sign-In failed"
                 showError = true
             }
         }
     }
     
+    // MARK: - Nonce Utilities
+    enum NonceGenerator {
+        static func generate(length: Int = 32) -> String {
+            let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+            var result = ""
+            var remainingLength = length
+            while remainingLength > 0 {
+                let randoms: [UInt8] = (0..<16).map { _ in UInt8.random(in: 0...255) }
+                randoms.forEach { random in
+                    if remainingLength == 0 { return }
+                    if random < charset.count {
+                        result.append(charset[Int(random)])
+                        remainingLength -= 1
+                    }
+                }
+            }
+            return result
+        }
+        
+        static func sha256(_ input: String) -> String {
+            guard let data = input.data(using: .utf8) else { return input }
+            let hashed = SHA256.hash(data: data)
+            return hashed.compactMap { String(format: "%02x", $0) }.joined()
+        }
+    }
 }
 
 // MARK: - Benefit Row Component
@@ -229,7 +272,6 @@ struct BenefitRow: View {
 
 #Preview {
     QuickAuthView(onAuthSuccess: {
-        print("Auth success!")
     })
 }
 

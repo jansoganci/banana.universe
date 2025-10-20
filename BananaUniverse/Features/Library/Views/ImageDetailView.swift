@@ -211,7 +211,6 @@ struct ImageDetailView: View {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("❌ [ImageDetailView] Failed to download image: Invalid response")
                 isDownloading = false
                 return
             }
@@ -220,7 +219,6 @@ struct ImageDetailView: View {
             try await saveImageToPhotos(data: data)
             
             downloadSuccess = true
-            print("✅ [ImageDetailView] Successfully downloaded and saved image")
             
             // Reset success state after a delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
@@ -228,7 +226,6 @@ struct ImageDetailView: View {
             }
             
         } catch {
-            Config.debugLog("Download failed: \(error)")
         }
         
         isDownloading = false
@@ -249,16 +246,13 @@ struct ImageDetailView: View {
             if newStatus == .authorized || newStatus == .limited {
                 try await performPhotoSave(data: data)
             } else {
-                print("❌ [ImageDetailView] Photo library permission denied")
                 throw ImageDetailError.permissionDenied
             }
             
         case .denied, .restricted:
-            print("❌ [ImageDetailView] Photo library access denied or restricted")
             throw ImageDetailError.permissionDenied
             
         @unknown default:
-            print("❌ [ImageDetailView] Unknown photo library authorization status")
             throw ImageDetailError.permissionDenied
         }
     }

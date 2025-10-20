@@ -286,6 +286,10 @@ struct DesignTokens {
                 generator = mediumImpact
             case .heavy:
                 generator = heavyImpact
+            case .soft:
+                generator = lightImpact // Use light impact for soft
+            case .rigid:
+                generator = heavyImpact // Use heavy impact for rigid
             @unknown default:
                 generator = mediumImpact
             }

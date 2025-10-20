@@ -156,35 +156,27 @@ class MockPaywallViewModel: ObservableObject {
     
     func trackPaywallView() {
         // In a real implementation, this would send analytics events
-        print("📊 [MockPaywallViewModel] Paywall viewed - Variant: \(variant.rawValue)")
     }
     
     func trackProductSelected(_ product: MockProduct) {
-        print("📊 [MockPaywallViewModel] Product selected: \(product.id)")
     }
     
     func trackPurchaseAttempt(_ product: MockProduct) {
-        print("📊 [MockPaywallViewModel] Purchase attempted: \(product.id)")
     }
     
     func trackPurchaseSuccess(_ product: MockProduct) {
-        print("📊 [MockPaywallViewModel] Purchase successful: \(product.id)")
     }
     
     func trackPurchaseFailure(_ product: MockProduct, error: Error) {
-        Config.debugLog("Purchase failed: \(product.id) - \(error)")
     }
     
     func trackRestoreAttempt() {
-        print("📊 [MockPaywallViewModel] Restore attempted")
     }
     
     func trackRestoreSuccess() {
-        print("📊 [MockPaywallViewModel] Restore successful")
     }
     
     func trackRestoreFailure(_ error: Error) {
-        Config.debugLog("Restore failed: \(error)")
     }
 }
 

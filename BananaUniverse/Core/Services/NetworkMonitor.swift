@@ -35,7 +35,6 @@ class NetworkMonitor: ObservableObject {
                 self?.isConnected = path.status == .satisfied
                 self?.connectionType = path.availableInterfaces.first?.type
                 
-                Config.debugLog("Network status changed: \(path.status), type: \(path.availableInterfaces.first?.type ?? .other)")
             }
         }
         monitor.start(queue: queue)

@@ -244,7 +244,6 @@ struct FakePaywallView: View {
         Button(action: {
             Task {
                 guard let selectedProduct = viewModel.selectedProduct else {
-                    Config.debugLog("Cannot purchase: no product selected")
                     return
                 }
                 viewModel.trackPurchaseAttempt(selectedProduct)
@@ -309,7 +308,6 @@ struct FakePaywallView: View {
             HStack(spacing: 24) {
                 Button("Terms of Service") {
                     // In a real app, this would open Terms of Service
-                    print("Terms of Service tapped")
                 }
                 .font(.system(size: 12, weight: .regular))
                 .foregroundColor(.secondary)

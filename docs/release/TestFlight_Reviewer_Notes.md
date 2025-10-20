@@ -44,7 +44,7 @@
 - **Data:** Credits stored locally on device
 
 ### Premium Users (Authenticated)
-- **Starting Credits:** 10 credits + 20% bonus on purchase
+- **Starting Credits:** 10 credits
 - **Credit Packs:** 10, 50, 100, 500 credits available
 - **Features:** All features + credit sync across devices
 - **Data:** Credits synced to cloud account
@@ -84,7 +84,6 @@
 2. **Go to Paywall** - tap "Get More Credits" when credits low
 3. **Test purchase flow** - use Sandbox environment
 4. **Verify credit addition** - credits should increase
-5. **Test bonus credits** - authenticated users get 20% bonus
 
 ### 5. Test Image Upscaler
 1. **Go to Home tab**

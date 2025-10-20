@@ -91,33 +91,11 @@ struct UnifiedHeaderBar: View {
                 )
             }
             
-        case .quotaBadge(let quota, let action):
-            Button(action: action) {
-                Text("Daily Credits: \(quota) / 10")
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(1)
-                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
-                    )
-            }
+        case .quotaBadge(_, _, let action):
+            QuotaDisplayView(style: .compact, action: action)
             
         case .unlimitedBadge(let action):
-            Button(action: action) {
-                Text("∞")
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(1)
-                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(DesignTokens.Surface.primary(themeManager.resolvedColorScheme))
-                    )
-            }
+            QuotaDisplayView(style: .compact, action: action)
             
         case .empty:
             EmptyView()
@@ -130,7 +108,7 @@ enum HeaderContent {
     case brandLogo(String)
     case appLogo(CGFloat)
     case getProButton(() -> Void)
-    case quotaBadge(Int, () -> Void)
+    case quotaBadge(Int, Int, () -> Void) // quota, limit, action
     case unlimitedBadge(() -> Void)
     case empty
 }
@@ -148,7 +126,7 @@ enum HeaderContent {
         UnifiedHeaderBar(
             title: "Banana Universe",
             leftContent: .brandLogo("Banana Universe"),
-            rightContent: .quotaBadge(3, {})
+            rightContent: .quotaBadge(3, 5, {})
         )
         
         // Chat style - Unlimited mode with App Logo

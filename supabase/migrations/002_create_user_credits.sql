@@ -32,18 +32,21 @@ CREATE INDEX IF NOT EXISTS idx_anonymous_credits_device_id ON anonymous_credits(
 ALTER TABLE user_credits ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can read their own credits
+DROP POLICY IF EXISTS "Users can view their own credits" ON user_credits;
 CREATE POLICY "Users can view their own credits"
     ON user_credits
     FOR SELECT
     USING (auth.uid() = user_id);
 
 -- Policy: Users can update their own credits
+DROP POLICY IF EXISTS "Users can update their own credits" ON user_credits;
 CREATE POLICY "Users can update their own credits"
     ON user_credits
     FOR UPDATE
     USING (auth.uid() = user_id);
 
 -- Policy: Users can insert their own credits record
+DROP POLICY IF EXISTS "Users can insert their own credits" ON user_credits;
 CREATE POLICY "Users can insert their own credits"
     ON user_credits
     FOR INSERT
@@ -74,7 +77,7 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     amount INTEGER NOT NULL, -- Positive for additions, negative for spending
     balance_after INTEGER NOT NULL,
-    source VARCHAR(50) NOT NULL, -- 'purchase', 'bonus', 'migration', 'spend', 'refund'
+    source VARCHAR(50) NOT NULL, -- 'purchase', 'migration', 'spend', 'refund'
     transaction_metadata JSONB, -- Store additional data like product_id, etc.
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -87,6 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_created_at ON credit_transact
 ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can read their own transactions
+DROP POLICY IF EXISTS "Users can view their own transactions" ON credit_transactions;
 CREATE POLICY "Users can view their own transactions"
     ON credit_transactions
     FOR SELECT
@@ -127,5 +131,5 @@ COMMENT ON TABLE user_credits IS 'Stores credit balance for each user';
 COMMENT ON TABLE credit_transactions IS 'Audit log of all credit additions and spending';
 COMMENT ON COLUMN user_credits.credits IS 'Current credit balance (non-negative)';
 COMMENT ON COLUMN credit_transactions.amount IS 'Credit change amount (positive = add, negative = spend)';
-COMMENT ON COLUMN credit_transactions.source IS 'Source of transaction: purchase, bonus, migration, spend, refund';
+COMMENT ON COLUMN credit_transactions.source IS 'Source of transaction: purchase, migration, spend, refund';
 

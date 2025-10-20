@@ -37,7 +37,6 @@ struct Config {
     static func debugLog(_ message: String, file: String = #file, function: String = #function) {
         #if DEBUG
         let fileName = URL(fileURLWithPath: file).lastPathComponent
-        print("[\(fileName):\(function)] \(message)")
         #endif
     }
 }

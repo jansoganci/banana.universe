@@ -14,6 +14,9 @@ class ProfileViewModel: ObservableObject {
     @Published var alertMessage: String = ""
     @Published var showDeleteConfirmation: Bool = false
     @Published var isDeletingAccount: Bool = false
+    @Published var profile: UserProfile? = nil
+    @Published var isProfileLoading: Bool = false
+    @Published var profileError: String? = nil
     
     private let supabaseService = SupabaseService.shared
     private let authService = HybridAuthService.shared
@@ -45,7 +48,6 @@ class ProfileViewModel: ObservableObject {
         }
         
         do {
-            Config.debugLog("Starting account deletion process...")
             
             // Call Supabase to delete account and all data
             try await supabaseService.deleteUserAccount()
@@ -60,10 +62,8 @@ class ProfileViewModel: ObservableObject {
                 showAlert = true
             }
             
-            Config.debugLog("Account deletion completed successfully")
             
         } catch {
-            Config.debugLog("Account deletion failed: \(error)")
             
             await MainActor.run {
                 isDeletingAccount = false
@@ -78,5 +78,44 @@ class ProfileViewModel: ObservableObject {
                 showAlert = true
             }
         }
+    }
+
+    // MARK: - Profile Loading
+    func onAuthStateChanged(_ newState: UserState) async {
+        switch newState {
+        case .authenticated:
+            await loadProfile()
+        case .anonymous:
+            await MainActor.run {
+                self.profile = nil
+                self.profileError = nil
+                self.isProfileLoading = false
+            }
+        }
+    }
+    
+    func loadProfile() async {
+        await MainActor.run {
+            self.isProfileLoading = true
+            self.profileError = nil
+        }
+        do {
+            let data = try await supabaseService.getUserProfile()
+            await MainActor.run {
+                self.profile = data
+                self.isProfileLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.profileError = AppError.from(error).errorDescription
+                self.isProfileLoading = false
+            }
+        }
+    }
+    
+    func clearProfile() {
+        profile = nil
+        profileError = nil
+        isProfileLoading = false
     }
 }

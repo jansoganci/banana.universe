@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Adapty
+// import Adapty
 
 // MARK: - Mock Product Structure
 

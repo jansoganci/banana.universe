@@ -16,6 +16,18 @@ struct LoginView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     
+    // MARK: - Computed Properties
+    
+    private var isFormValid: Bool {
+        !email.isEmpty && !password.isEmpty && isValidEmail(email)
+    }
+    
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
+    }
+    
     var body: some View {
         VStack(spacing: 24) {
             Text(isSignUpMode ? "Create Account" : "Welcome Back")
@@ -43,11 +55,11 @@ struct LoginView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(DesignTokens.Brand.primary(.light))
+                .background(isFormValid ? DesignTokens.Brand.primary(.light) : DesignTokens.Brand.primary(.light).opacity(0.6))
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
-            .disabled(authService.isLoading || email.isEmpty || password.isEmpty)
+            .disabled(!isFormValid || authService.isLoading)
             
             Button(isSignUpMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up") {
                 isSignUpMode.toggle()

@@ -63,8 +63,14 @@ class ChatViewModel: ObservableObject {
     @Published var uploadProgress: Double = 0.0
     @Published var showingPaywall = false
     @Published var showingLogin = false
-    @Published var dailyQuotaUsed = 0
-    @Published var dailyQuotaLimit = 5 // Free users get 5 free uses per day
+    // Quota properties now connected to HybridCreditManager
+    var dailyQuotaUsed: Int {
+        return creditManager.dailyQuotaUsed
+    }
+    
+    var dailyQuotaLimit: Int {
+        return creditManager.dailyQuotaLimit
+    }
     @Published var currentPrompt: String? = nil // Current prompt for processing
     @Published var messages: [ChatMessage] = [] // Chat messages for displaying results
     @Published var currentJobID: String? = nil // Current job being processed
@@ -74,14 +80,24 @@ class ChatViewModel: ObservableObject {
         return jobStatus.isActive
     }
     
+    // MARK: - Quota Management (Connected to HybridCreditManager)
+    var remainingQuota: Int {
+        return creditManager.remainingQuota
+    }
+    
+    var isPremiumUser: Bool {
+        return creditManager.isPremiumUser
+    }
+    
     private let authService = HybridAuthService.shared
     private let storageService = StorageService.shared
     private let supabaseService = SupabaseService.shared
-    private let adaptyService = AdaptyService.shared
+    // private let adaptyService = AdaptyService.shared
     private let creditManager = HybridCreditManager.shared
     
     init() {
-        loadDailyQuota()
+        // Quota management is now handled by HybridCreditManager
+        // No need to load quota separately
     }
     
     // MARK: - Prompt Management
@@ -227,13 +243,10 @@ class ChatViewModel: ObservableObject {
             uploadProgress = 0.1
             
             // Step 2: Upload image to Supabase Storage first
-            Config.debugLog("Uploading image to storage...")
             let imageURL = try await supabaseService.uploadImageToStorage(imageData: imageData)
-            Config.debugLog("Image uploaded successfully")
             
             uploadProgress = 0.2
             
-            Config.debugLog("Using Steve Jobs style processing...")
             
             // Step 3: 🍎 STEVE JOBS STYLE - Direct processing (no polling!)
             jobStatus = .processing(elapsedTime: 0)
@@ -261,8 +274,6 @@ class ChatViewModel: ObservableObject {
             
             uploadProgress = 0.8
             
-            Config.debugLog("Steve Jobs processing completed!")
-            Config.debugLog("Processed image URL generated")
             
             // Step 4: Download processed image directly (no polling needed!)
             guard let processedImageURL = steveJobsResult.processedImageURL else {
@@ -273,7 +284,6 @@ class ChatViewModel: ObservableObject {
             
             // Download the processed image
             guard let url = URL(string: processedImageURL) else {
-                Config.debugLog("Failed to create URL from processed image URL")
                 throw ChatError.invalidResult
             }
             let (processedImageData, _) = try await URLSession.shared.data(from: url)
@@ -303,12 +313,8 @@ class ChatViewModel: ObservableObject {
                 )
             }
             
-            // Update quota for anonymous users
-            if !authService.isAuthenticated {
-                incrementDailyQuota()
-            }
+            // Quota updates are handled by backend and HybridCreditManager
             
-            Config.debugLog("Processing complete!")
             
         } catch {
             let appError = AppError.from(error)
@@ -316,7 +322,6 @@ class ChatViewModel: ObservableObject {
             jobStatus = .failed(error: appError.errorDescription ?? "Processing failed")
             uploadProgress = 0.0
             
-            Config.debugLog("Processing failed: \(error)")
             
             // Update or add error message to chat
             if let lastMessage = messages.last, lastMessage.type == .assistant, lastMessage.image == nil {
@@ -439,41 +444,7 @@ class ChatViewModel: ObservableObject {
     }
     
     // MARK: - Quota Management
-    private func loadDailyQuota() {
-        // Use UTC date to match backend behavior
-        let utcToday = getUTCDateString()
-        let lastUsedDate = UserDefaults.standard.string(forKey: "lastQuotaDate")
-        
-        if lastUsedDate != utcToday {
-            // Reset quota for new day
-            dailyQuotaUsed = 0
-            UserDefaults.standard.set(utcToday, forKey: "lastQuotaDate")
-            UserDefaults.standard.set(0, forKey: "dailyQuotaUsed")
-        } else {
-            // Load existing quota
-            dailyQuotaUsed = UserDefaults.standard.integer(forKey: "dailyQuotaUsed")
-        }
-    }
-    
-    private func getUTCDateString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter.string(from: Date())
-    }
-    
-    private func incrementDailyQuota() {
-        dailyQuotaUsed += 1
-        UserDefaults.standard.set(dailyQuotaUsed, forKey: "dailyQuotaUsed")
-    }
-    
-    var remainingQuota: Int {
-        return max(0, dailyQuotaLimit - dailyQuotaUsed)
-    }
-    
-    var hasQuotaLeft: Bool {
-        return remainingQuota > 0
-    }
+    // Legacy local quota implementation removed. Quota is now managed by HybridCreditManager.
     
     // MARK: - Paywall Flow
     func showPaywall() {

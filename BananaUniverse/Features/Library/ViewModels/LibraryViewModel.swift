@@ -107,7 +107,6 @@ class LibraryViewModel: ObservableObject {
             // Get current user state
             let userState = authService.userState
             
-            print("📚 [LibraryViewModel] Loading history for: \(userState.identifier)")
             
             // Fetch jobs from database
             let jobs = try await supabaseService.fetchUserJobs(
@@ -115,7 +114,6 @@ class LibraryViewModel: ObservableObject {
                 limit: 50
             )
             
-            print("✅ [LibraryViewModel] Fetched \(jobs.count) jobs")
             
             // Transform jobs to history items
             var newHistoryItems: [HistoryItem] = []
@@ -152,10 +150,8 @@ class LibraryViewModel: ObservableObject {
             // Update UI on main thread
             historyItems = newHistoryItems
             
-            print("✅ [LibraryViewModel] Transformed to \(historyItems.count) history items")
             
         } catch {
-            Config.debugLog("Failed to load history: \(error)")
             let appError = AppError.from(error)
             let libraryError = LibraryError.loadFailed(appError.errorDescription ?? "Failed to load history")
             errorMessage = libraryError.errorDescription
@@ -172,7 +168,6 @@ class LibraryViewModel: ObservableObject {
     }
     
     func rerunJob(_ item: HistoryItem) async {
-        print("🔄 [LibraryViewModel] Re-running job: \(item.id)")
         
         // Check if user has quota
         guard creditManager.hasCredits() else {
@@ -189,17 +184,14 @@ class LibraryViewModel: ObservableObject {
         // 3. Polling for completion
         // 4. Updating the UI when complete
         
-        print("✅ [LibraryViewModel] Job re-run initiated for: \(item.id)")
     }
     
     func shareResult(_ item: HistoryItem) {
-        print("📤 [LibraryViewModel] Sharing result: \(item.id)")
         selectedItem = item
         showingShareSheet = true
     }
     
     func deleteJob(_ item: HistoryItem) async {
-        print("🗑️ [LibraryViewModel] Deleting job: \(item.id)")
         
         // TODO: Implement proper delete with API
         // This would involve:
@@ -210,11 +202,9 @@ class LibraryViewModel: ObservableObject {
         // For now, just remove from local array
         historyItems.removeAll { $0.id == item.id }
         
-        print("✅ [LibraryViewModel] Job deleted successfully: \(item.id)")
     }
     
     func navigateToResult(_ item: HistoryItem) {
-        print("🔍 [LibraryViewModel] Navigating to result: \(item.id)")
         selectedItem = item
         // TODO: Implement navigation to ResultView
         // This would involve:
@@ -289,10 +279,8 @@ class LibraryViewModel: ObservableObject {
         // Use proper Supabase signed URL generation
         do {
             let signedURLString = try await supabaseService.getSignedURL(for: path)
-            print("✅ [LibraryViewModel] Generated signed URL for: \(path)")
             return URL(string: signedURLString)
         } catch {
-            Config.debugLog("Failed to generate signed URL for \(path): \(error)")
             // Fallback to public URL if signed URL fails
             let baseURL = "https://jiorfutbmahpfgplkats.supabase.co/storage/v1/object/public/\(Config.supabaseBucket)"
             let fullPath = "\(baseURL)/\(path)"
@@ -304,7 +292,6 @@ class LibraryViewModel: ObservableObject {
     
     func downloadImage(_ item: HistoryItem) async {
         guard let resultURL = item.resultURL else {
-            print("❌ [LibraryViewModel] No result URL available for download")
             return
         }
         
@@ -312,7 +299,6 @@ class LibraryViewModel: ObservableObject {
         isDownloading = true
         downloadingItemID = item.id
         
-        print("📥 [LibraryViewModel] Starting download for: \(item.effectTitle)")
         
         do {
             // Download image data
@@ -320,7 +306,6 @@ class LibraryViewModel: ObservableObject {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("❌ [LibraryViewModel] Failed to download image: Invalid response")
                 isDownloading = false
                 downloadingItemID = nil
                 return
@@ -329,10 +314,8 @@ class LibraryViewModel: ObservableObject {
             // Save to Photos library
             try await saveImageToPhotos(data: data)
             
-            Config.debugLog("Successfully downloaded and saved image: \(item.effectTitle)")
             
         } catch {
-            Config.debugLog("Download failed: \(error)")
             // Show error to user
             let appError = AppError.from(error)
             errorMessage = appError.errorDescription ?? "Failed to download image"
@@ -359,14 +342,13 @@ class LibraryViewModel: ObservableObject {
             if newStatus == .authorized || newStatus == .limited {
                 try await performPhotoSave(data: data)
             } else {
-                print("❌ [LibraryViewModel] Photo library permission denied")
             }
             
         case .denied, .restricted:
-            print("❌ [LibraryViewModel] Photo library access denied or restricted")
+            break
             
         @unknown default:
-            print("❌ [LibraryViewModel] Unknown photo library authorization status")
+            break
         }
     }
     
@@ -395,11 +377,9 @@ class LibraryViewModel: ObservableObject {
     func cacheImage(_ image: UIImage, for url: URL) {
         let key = NSString(string: url.absoluteString)
         imageCache.setObject(image, forKey: key)
-        print("📸 [LibraryViewModel] Cached image for: \(url.lastPathComponent)")
     }
     
     private func clearImageCache() {
         imageCache.removeAllObjects()
-        print("🧹 [LibraryViewModel] Cleared image cache due to memory warning")
     }
 }

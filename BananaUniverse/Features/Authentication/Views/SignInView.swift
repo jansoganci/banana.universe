@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AuthenticationServices
+import CryptoKit
 
 struct SignInView: View {
     @Environment(\.dismiss) var dismiss
@@ -19,6 +20,18 @@ struct SignInView: View {
     @State private var isSignUp = false
     @State private var errorMessage = ""
     @State private var isLoading = false
+    
+    // MARK: - Computed Properties
+    
+    private var isFormValid: Bool {
+        !email.isEmpty && !password.isEmpty && isValidEmail(email)
+    }
+    
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
+    }
     
     var body: some View {
         NavigationView {
@@ -61,16 +74,14 @@ struct SignInView: View {
                 
                 // Sign In Form
                 VStack(spacing: 16) {
-                    if isSignUp {
-                        TextField("Email", text: $email)
-                            .textFieldStyle(CustomTextFieldStyle())
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 20)
-                    }
+                    TextField("Email", text: $email)
+                        .textFieldStyle(CustomTextFieldStyle())
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
                     
-                    TextField(isSignUp ? "Create Password" : "Password", text: $password)
+                    SecureField(isSignUp ? "Create Password" : "Password", text: $password)
                         .textFieldStyle(CustomTextFieldStyle())
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 20)
@@ -100,10 +111,10 @@ struct SignInView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(DesignTokens.Brand.primary(.light))
+                        .background(isFormValid ? DesignTokens.Brand.primary(.light) : DesignTokens.Brand.primary(.light).opacity(0.6))
                         .cornerRadius(12)
                     }
-                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+                    .disabled(!isFormValid || isLoading)
                     .padding(.horizontal, 20)
                     
                     // Toggle Sign Up/Sign In
@@ -137,6 +148,11 @@ struct SignInView: View {
                 SignInWithAppleButton(
                     onRequest: { request in
                         request.requestedScopes = [.fullName, .email]
+                        
+                        // Generate and attach nonce for replay protection
+                        let rawNonce = NonceGenerator.generate()
+                        self.currentNonce = rawNonce
+                        request.nonce = NonceGenerator.sha256(rawNonce)
                     },
                     onCompletion: { result in
                         Task {
@@ -189,6 +205,8 @@ struct SignInView: View {
         isLoading = false
     }
     
+    @State private var currentNonce: String? = nil
+    
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
         isLoading = true
         errorMessage = ""
@@ -196,23 +214,36 @@ struct SignInView: View {
         do {
             switch result {
             case .success(let authorization):
-                guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                      let identityToken = appleIDCredential.identityToken,
-                      let identityTokenString = String(data: identityToken, encoding: .utf8) else {
+                
+                guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
                     throw HybridAuthError.invalidAppleCredential
                 }
                 
-                // Use the HybridAuthService's Apple Sign-In method directly
-                try await authService.signInWithApple()
+                
+                guard let identityTokenData = appleIDCredential.identityToken else {
+                    throw HybridAuthError.invalidAppleCredential
+                }
+                
+                
+                guard let identityToken = String(data: identityTokenData, encoding: .utf8) else {
+                    throw HybridAuthError.invalidAppleCredential
+                }
+                
+                
+                let nonce = currentNonce
+                
+                try await authService.signInWithApple(idToken: identityToken, nonce: nonce)
                 
                 dismiss()
+                
             case .failure(let error):
+                
                 let appError = AppError.from(error)
-                errorMessage = appError.errorDescription ?? "Sign in failed"
+                errorMessage = appError.errorDescription ?? "Apple Sign-In failed"
             }
         } catch {
             let appError = AppError.from(error)
-            errorMessage = appError.errorDescription ?? "Sign in failed"
+            errorMessage = appError.errorDescription ?? "Apple Sign-In failed"
         }
         
         isLoading = false
@@ -234,6 +265,32 @@ struct CustomTextFieldStyle: TextFieldStyle {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(DesignTokens.Text.tertiary(themeManager.resolvedColorScheme), lineWidth: 1)
             )
+    }
+}
+
+// MARK: - Nonce Utilities
+enum NonceGenerator {
+    static func generate(length: Int = 32) -> String {
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remainingLength = length
+        while remainingLength > 0 {
+            let randoms: [UInt8] = (0..<16).map { _ in UInt8.random(in: 0...255) }
+            randoms.forEach { random in
+                if remainingLength == 0 { return }
+                if random < charset.count {
+                    result.append(charset[Int(random)])
+                    remainingLength -= 1
+                }
+            }
+        }
+        return result
+    }
+    
+    static func sha256(_ input: String) -> String {
+        guard let data = input.data(using: .utf8) else { return input }
+        let hashed = SHA256.hash(data: data)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
 

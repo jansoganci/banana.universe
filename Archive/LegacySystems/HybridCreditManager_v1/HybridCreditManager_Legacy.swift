@@ -1,30 +1,30 @@
 //
-//  HybridCreditManager.swift
+//  HybridCreditManager_Legacy.swift
 //  noname_banana
 //
 //  Created by AI Assistant on 14.10.2025.
 //
 
+// MARK: - Legacy Backup
+// This is a frozen snapshot of the original HybridCreditManager system
+// before the daily quota refactor (Date: 2025-01-27)
+// Purpose: to preserve the pure credit-based logic for future reference.
+
 import Foundation
 import Supabase
 import Combine
-// import Adapty
+import Adapty
 
 /// Manages credits for both anonymous and authenticated users
+/// LEGACY VERSION - Preserved before daily quota refactor
 @MainActor
-class HybridCreditManager: ObservableObject {
-    static let shared = HybridCreditManager()
+class HybridCreditManagerLegacy: ObservableObject {
+    static let shared = HybridCreditManagerLegacy()
     
     @Published var credits: Int = 0
     @Published var userState: UserState = .anonymous(deviceId: UUID().uuidString)
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
-    // Daily quota properties
-    @Published var dailyQuotaUsed: Int = 0
-    @Published var dailyQuotaLimit: Int = 5
-    @Published var lastQuotaDate: String = ""
-    @Published var isPremiumUser: Bool = false
     
     // Credit costs
     private let FREE_CREDITS = 10
@@ -35,19 +35,12 @@ class HybridCreditManager: ObservableObject {
     private let deviceUUIDKey = "device_uuid_v1"
     private let userStateKey = "user_state_v1"
     
-    // Daily quota storage keys
-    private let dailyQuotaKey = "daily_quota_v1"
-    private let lastQuotaDateKey = "last_quota_date_v1"
-    private let premiumStatusKey = "premium_status_v1"
-    
     private let supabase: SupabaseService
     
     private init() {
         self.supabase = SupabaseService.shared
         loadUserState()
         loadCredits()
-        loadDailyQuota()
-        updatePremiumStatus()
     }
     
     // MARK: - User State Management
@@ -74,11 +67,6 @@ class HybridCreditManager: ObservableObject {
         userState = newState
         saveUserState()
         loadCredits()
-        
-        // Refresh premium status when user state changes
-        Task {
-            await refreshPremiumStatus()
-        }
     }
     
     // MARK: - Credit Management
@@ -98,19 +86,6 @@ class HybridCreditManager: ObservableObject {
         return credits > 0
     }
     
-    func canProcessImage() -> Bool {
-        // Check credits first
-        guard credits > 0 else { return false }
-        
-        // Check premium status - premium users bypass quota
-        if isPremiumUser {
-            return true
-        }
-        
-        // Check daily quota for non-premium users
-        return dailyQuotaUsed < dailyQuotaLimit
-    }
-    
     func spendCredit() async throws -> Bool {
         guard credits > 0 else {
             throw HybridCreditError.insufficientCredits
@@ -128,23 +103,6 @@ class HybridCreditManager: ObservableObject {
         return true
     }
     
-    func spendCreditWithQuota() async throws -> Bool {
-        // Check if user can process (includes quota check)
-        guard canProcessImage() else {
-            throw HybridCreditError.insufficientCredits
-        }
-        
-        // Spend credit
-        try await spendCredit()
-        
-        // Update quota for non-premium users
-        if !isPremiumUser {
-            incrementDailyQuota()
-        }
-        
-        return true
-    }
-    
     func addCredits(_ amount: Int, source: CreditSource) async throws {
         credits += amount
         
@@ -155,111 +113,9 @@ class HybridCreditManager: ObservableObject {
             try await saveAuthenticatedCredits(userId: user.id)
         }
         
+        Config.debugLog("Added \(amount) credits from \(source.rawValue). Total: \(credits)")
     }
     
-    // MARK: - Daily Quota Management
-    
-    private func loadDailyQuota() {
-        // Load quota usage from local storage
-        dailyQuotaUsed = UserDefaults.standard.integer(forKey: dailyQuotaKey)
-        
-        // Load last quota date
-        lastQuotaDate = UserDefaults.standard.string(forKey: lastQuotaDateKey) ?? ""
-        
-        // Load premium status
-        isPremiumUser = UserDefaults.standard.bool(forKey: premiumStatusKey)
-        
-        // Check if quota reset is needed
-        resetDailyQuotaIfNeeded()
-        
-    }
-    
-    private func saveDailyQuota() {
-        UserDefaults.standard.set(dailyQuotaUsed, forKey: dailyQuotaKey)
-        UserDefaults.standard.set(lastQuotaDate, forKey: lastQuotaDateKey)
-        UserDefaults.standard.set(isPremiumUser, forKey: premiumStatusKey)
-        
-    }
-    
-    private func resetDailyQuotaIfNeeded() {
-        let today = getLocalMidnightDate()
-        
-        if lastQuotaDate != today {
-            // Reset quota for new day
-            dailyQuotaUsed = 0
-            lastQuotaDate = today
-            saveDailyQuota()
-            
-        }
-    }
-    
-    private func incrementDailyQuota() {
-        dailyQuotaUsed += 1
-        saveDailyQuota()
-        
-    }
-    
-    private func getLocalMidnightDate() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.string(from: Date())
-    }
-    
-    private func isQuotaResetNeeded() -> Bool {
-        let today = getLocalMidnightDate()
-        return lastQuotaDate != today
-    }
-    
-    // MARK: - Premium User Integration
-    
-    private func updatePremiumStatus() {
-        // Mock premium status - always false for App Review
-        let newPremiumStatus = false // AdaptyService.shared.isProUser
-        if isPremiumUser != newPremiumStatus {
-            isPremiumUser = newPremiumStatus
-            saveDailyQuota()
-            
-        }
-    }
-    
-    private func refreshPremiumStatus() async {
-        do {
-            // Mock restore - always succeeds
-            // _ = try await AdaptyService.shared.restorePurchases()
-            updatePremiumStatus()
-        } catch {
-            // Fallback to cached status
-            updatePremiumStatus()
-        }
-    }
-    
-    // MARK: - Computed Properties for UI
-    
-    var remainingQuota: Int {
-        if isPremiumUser {
-            return credits // Premium users have unlimited quota
-        }
-        return max(0, dailyQuotaLimit - dailyQuotaUsed)
-    }
-    
-    var hasQuotaLeft: Bool {
-        if isPremiumUser {
-            return credits > 0 // Premium users only limited by credits
-        }
-        return remainingQuota > 0
-    }
-    
-    var quotaDisplayText: String {
-        if isPremiumUser {
-            return "Unlimited"
-        }
-        return "\(dailyQuotaUsed)/\(dailyQuotaLimit)"
-    }
-    
-    var isQuotaUnlimited: Bool {
-        return isPremiumUser
-    }
     
     // MARK: - Anonymous User Credits
     
@@ -276,6 +132,7 @@ class HybridCreditManager: ObservableObject {
                 
                 if let anonymousCredits = result.first {
                     credits = anonymousCredits.credits
+                    Config.debugLog("Loaded \(credits) anonymous credits from backend")
                 } else {
                     // No backend record - check local storage
                     let localCredits = getLocalCredits(deviceId: deviceId)
@@ -287,9 +144,11 @@ class HybridCreditManager: ObservableObject {
                         // New user - give free credits
                         credits = FREE_CREDITS
                         try await createAnonymousCreditsRecord(deviceId: deviceId, initialCredits: FREE_CREDITS)
+                        Config.debugLog("Awarded \(FREE_CREDITS) free credits to new anonymous user")
                     }
                 }
             } catch {
+                Config.debugLog("Failed to load anonymous credits from backend: \(error)")
                 // Fallback to local storage
                 credits = getLocalCredits(deviceId: deviceId)
                 if credits == 0 {
@@ -309,6 +168,7 @@ class HybridCreditManager: ObservableObject {
             do {
                 try await updateAnonymousCreditsBackend(deviceId: deviceId)
             } catch {
+                Config.debugLog("Failed to sync anonymous credits to backend: \(error)")
             }
         }
     }
@@ -326,6 +186,7 @@ class HybridCreditManager: ObservableObject {
             .insert(anonymousCredits)
             .execute()
         
+        Config.debugLog("Created anonymous credits record with \(initialCredits) credits")
     }
     
     private func updateAnonymousCreditsBackend(deviceId: String) async throws {
@@ -335,6 +196,7 @@ class HybridCreditManager: ObservableObject {
             .eq("device_id", value: deviceId)
             .execute()
         
+        Config.debugLog("Updated anonymous credits in backend: \(credits)")
     }
     
     // MARK: - Authenticated User Credits
@@ -350,11 +212,13 @@ class HybridCreditManager: ObservableObject {
             
             if let userCredits = result.first {
                 credits = userCredits.credits
+                Config.debugLog("Loaded \(credits) authenticated credits from backend")
             } else {
                 // New authenticated user - create record
                 try await createAuthenticatedCreditsRecord(userId: userId)
             }
         } catch {
+            Config.debugLog("Failed to load authenticated credits from backend: \(error)")
             // Fallback to local storage
             credits = getLocalCredits(deviceId: userState.identifier)
         }
@@ -370,6 +234,7 @@ class HybridCreditManager: ObservableObject {
             ])
             .execute()
         
+        Config.debugLog("Saved authenticated credits to backend: \(credits)")
     }
     
     private func createAuthenticatedCreditsRecord(userId: UUID) async throws {
@@ -388,6 +253,7 @@ class HybridCreditManager: ObservableObject {
             .execute()
         
         credits = initialCredits
+        Config.debugLog("Created authenticated credits record with \(initialCredits) credits")
     }
     
     // MARK: - Migration (Anonymous → Authenticated)
@@ -399,6 +265,7 @@ class HybridCreditManager: ObservableObject {
         
         let localCredits = getLocalCredits(deviceId: deviceId)
         
+        Config.debugLog("Migrating \(localCredits) anonymous credits to authenticated account")
         
         // Update user state
         userState = .authenticated(user: user)
@@ -415,6 +282,7 @@ class HybridCreditManager: ObservableObject {
         // Clear local anonymous credits
         clearLocalCredits(deviceId: deviceId)
         
+        Config.debugLog("Migration complete")
     }
     
     // MARK: - Local Storage Helpers
@@ -439,6 +307,7 @@ class HybridCreditManager: ObservableObject {
     
     private func saveLocalCredits(deviceId: String) {
         UserDefaults.standard.set(credits, forKey: "\(creditsKey)_\(deviceId)")
+        Config.debugLog("Saved \(credits) credits locally for device: \(deviceId.prefix(8))...")
     }
     
     private func clearLocalCredits(deviceId: String) {
@@ -447,24 +316,23 @@ class HybridCreditManager: ObservableObject {
     
     // MARK: - Purchase Integration
     
-    // Mock product type for compilation
-    struct MockAdaptyProduct {
-        let vendorProductId: String
-        let localizedPrice: String?
-    }
-    
-    func purchaseCredits(product: MockAdaptyProduct) async throws {
+    func purchaseCredits(product: AdaptyPaywallProduct) async throws {
         isLoading = true
         errorMessage = nil
         
         do {
-            // Mock purchase - always succeeds
+            let profile = try await AdaptyService.shared.makePurchase(product: product)
             let creditAmount = getCreditAmount(from: product)
+            
             try await addCredits(creditAmount, source: .purchase)
+            
+            // Track purchase
             trackPurchase(product: product)
+            
             isLoading = false
         } catch {
-            errorMessage = "Purchase failed"
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Credit operation failed"
             isLoading = false
             throw error
         }
@@ -475,12 +343,11 @@ class HybridCreditManager: ObservableObject {
         errorMessage = nil
         
         do {
-            // Mock restore - always succeeds
-            let restoredCredits = credits // Keep current credits
+            let profile = try await AdaptyService.shared.restorePurchases()
+            let restoredCredits = try await calculateCreditsFromProfile(profile)
             
             credits = restoredCredits
             
-            // Save credits
             switch userState {
             case .anonymous(let deviceId):
                 saveAnonymousCredits(deviceId: deviceId)
@@ -488,9 +355,11 @@ class HybridCreditManager: ObservableObject {
                 try await saveAuthenticatedCredits(userId: user.id)
             }
             
+            Config.debugLog("Restored \(restoredCredits) credits")
             isLoading = false
         } catch {
-            errorMessage = "Restore failed"
+            let appError = AppError.from(error)
+            errorMessage = appError.errorDescription ?? "Failed to restore purchases"
             isLoading = false
             throw error
         }
@@ -498,7 +367,7 @@ class HybridCreditManager: ObservableObject {
     
     // MARK: - Helper Methods
     
-    private func getCreditAmount(from product: MockAdaptyProduct) -> Int {
+    private func getCreditAmount(from product: AdaptyPaywallProduct) -> Int {
         let vendorId = product.vendorProductId
         
         if vendorId.contains("10") {
@@ -514,16 +383,7 @@ class HybridCreditManager: ObservableObject {
         return 10
     }
     
-    // Mock profile type
-    struct MockAdaptyProfile {
-        let accessLevels: [String: MockAccessLevel]
-    }
-    
-    struct MockAccessLevel {
-        let isActive: Bool
-    }
-    
-    private func calculateCreditsFromProfile(_ profile: MockAdaptyProfile) async throws -> Int {
+    private func calculateCreditsFromProfile(_ profile: AdaptyProfile) async throws -> Int {
         if profile.accessLevels["pro"]?.isActive == true {
             return 9999
         }
@@ -531,8 +391,9 @@ class HybridCreditManager: ObservableObject {
         return credits
     }
     
-    private func trackPurchase(product: MockAdaptyProduct) {
+    private func trackPurchase(product: AdaptyPaywallProduct) {
         UserDefaults.standard.set(true, forKey: "has_purchased")
+        Config.debugLog("Purchase tracked: \(product.vendorProductId)")
     }
 }
 
@@ -569,6 +430,7 @@ struct UserCredits: Codable {
 enum CreditSource: String {
     case purchase = "purchase"
     case migration = "migration"
+    case bonus = "bonus"
     case refund = "refund"
 }
 
