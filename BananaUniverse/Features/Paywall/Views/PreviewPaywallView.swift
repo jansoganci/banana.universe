@@ -50,7 +50,7 @@ struct PreviewPaywallView: View {
                     Button("Close") {
                         dismiss()
                     }
-                    .foregroundColor(DesignTokens.Text.inverse)
+                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                 }
             }
             .alert(viewModel.alertTitle, isPresented: $viewModel.showAlert) {
@@ -71,8 +71,8 @@ struct PreviewPaywallView: View {
     private var backgroundGradient: some View {
         LinearGradient(
             colors: [
-                Color(red: 0.98, green: 0.96, blue: 0.94), // Light beige
-                Color(red: 0.95, green: 0.93, blue: 0.90)  // Cream
+                DesignTokens.Background.primary(themeManager.resolvedColorScheme),
+                DesignTokens.Background.secondary(themeManager.resolvedColorScheme)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -87,13 +87,13 @@ struct PreviewPaywallView: View {
             // Title
             Text("Unlock Full Power")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
+                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                 .multilineTextAlignment(.center)
             
             // Subtitle
             Text("Get unlimited access to all premium features")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                 .multilineTextAlignment(.center)
         }
         .padding(.top, 20)
@@ -149,7 +149,7 @@ struct PreviewPaywallView: View {
             
             Text("Loading products...")
                 .font(.subheadline)
-                .foregroundColor(DesignTokens.Text.inverse.opacity(0.8))
+                .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
         }
         .padding(DesignTokens.Spacing.xl)
     }
@@ -268,13 +268,13 @@ struct PreviewPaywallView: View {
             .frame(height: 56)
             .background(
                 LinearGradient(
-                    colors: [Color(red: 1.0, green: 0.72, blue: 0.3), Color(red: 1.0, green: 0.65, blue: 0.2)], // Gold gradient
+                    colors: [DesignTokens.Brand.accent(themeManager.resolvedColorScheme), DesignTokens.Brand.accent(themeManager.resolvedColorScheme).opacity(0.8)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .cornerRadius(16)
-            .shadow(color: .orange.opacity(0.3), radius: 12, x: 0, y: 6)
+            .shadow(color: DesignTokens.Brand.accent(themeManager.resolvedColorScheme).opacity(0.3), radius: 12, x: 0, y: 6)
         }
         .disabled(!viewModel.canPurchase)
         .opacity(viewModel.canPurchase ? 1.0 : 0.6)
@@ -299,7 +299,7 @@ struct PreviewPaywallView: View {
                     Text("Restore Purchases")
                         .font(.system(size: 14, weight: .medium))
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignTokens.Text.link(themeManager.resolvedColorScheme))
             }
             .accessibilityLabel("Restore Purchases")
             .accessibilityHint("Tap to restore previous purchases")
@@ -310,7 +310,7 @@ struct PreviewPaywallView: View {
                     // In a real app, this would open Terms of Service
                 }
                 .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignTokens.Text.link(themeManager.resolvedColorScheme))
                 .accessibilityLabel("Terms of Service")
                 
                 Button("Privacy Policy") {
@@ -319,7 +319,7 @@ struct PreviewPaywallView: View {
                     }
                 }
                 .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignTokens.Text.link(themeManager.resolvedColorScheme))
                 .accessibilityLabel("Privacy Policy")
             }
         }
@@ -340,22 +340,22 @@ struct PreviewPaywallBenefitRow: View {
             // Icon
             Image(systemName: icon)
                 .font(.system(size: 24, weight: .medium))
-                .foregroundColor(.orange)
+                .foregroundColor(DesignTokens.Brand.accent(themeManager.resolvedColorScheme))
                 .frame(width: 40, height: 40)
                 .background(
                     Circle()
-                        .fill(Color.orange.opacity(0.1))
+                        .fill(DesignTokens.Brand.accent(themeManager.resolvedColorScheme).opacity(0.1))
                 )
             
             // Text content
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                 
                 Text(description)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                     .lineLimit(2)
             }
             
@@ -383,11 +383,11 @@ struct PreviewPaywallProductCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.localizedTitle)
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.primary)
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                         
                         Text(product.localizedDescription)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
                             .lineLimit(2)
                     }
                     
@@ -410,12 +410,12 @@ struct PreviewPaywallProductCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(product.localizedPrice)
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.primary)
+                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
                         
                         if let savings = product.savings {
                             Text(savings)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.green)
+                                .foregroundColor(Color.green)
                         }
                     }
                     
@@ -425,7 +425,7 @@ struct PreviewPaywallProductCard: View {
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.orange)
+                            .foregroundColor(DesignTokens.Brand.accent(themeManager.resolvedColorScheme))
                     }
                 }
             }
@@ -436,7 +436,7 @@ struct PreviewPaywallProductCard: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? Color.orange : (shouldHighlight ? Color.green : Color.clear),
+                                isSelected ? DesignTokens.Brand.accent(themeManager.resolvedColorScheme) : (shouldHighlight ? Color.green : Color.clear),
                                 lineWidth: isSelected ? 2 : (shouldHighlight ? 1 : 0)
                             )
                     )
