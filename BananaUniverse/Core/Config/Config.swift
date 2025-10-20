@@ -25,7 +25,7 @@ struct Config {
     #endif
     
     // MARK: - Paywall Configuration
-    static let useTestPaywall = false // Always use Adapty now
+    static let useFakePaywall = true // Enable PreviewPaywall for App Review
     static let testPaywallPlacementId = "test_paywall_review" // Fake paywall for App Review testing only
     
     // MARK: - Privacy & Legal

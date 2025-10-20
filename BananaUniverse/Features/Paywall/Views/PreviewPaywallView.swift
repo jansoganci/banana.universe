@@ -1,14 +1,14 @@
 //
-//  FakePaywallView.swift
+//  PreviewPaywallView.swift
 //  BananaUniverse
 //
 //  Created by AI Assistant on 14.10.2025.
-//  Fake paywall for App Review testing only - Keep inactive in production
+//  Preview paywall for App Store submission - replaces Adapty paywall temporarily
 //
 
 import SwiftUI
 
-struct FakePaywallView: View {
+struct PreviewPaywallView: View {
     @StateObject private var viewModel = MockPaywallViewModel()
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
@@ -104,7 +104,7 @@ struct FakePaywallView: View {
     private var benefitsSection: some View {
         VStack(spacing: 20) {
             // Benefit 1
-            FakePaywallBenefitRow(
+                            PreviewPaywallBenefitRow(
                 icon: "sparkles",
                 title: "Unlimited AI image edits",
                 description: "Process as many images as you want"
@@ -113,7 +113,7 @@ struct FakePaywallView: View {
             .accessibilityHint("Premium benefit")
             
             // Benefit 2
-            FakePaywallBenefitRow(
+                            PreviewPaywallBenefitRow(
                 icon: "bolt.fill",
                 title: "Faster processing priority",
                 description: "Skip the queue and get results instantly"
@@ -122,7 +122,7 @@ struct FakePaywallView: View {
             .accessibilityHint("Premium benefit")
             
             // Benefit 3
-            FakePaywallBenefitRow(
+                            PreviewPaywallBenefitRow(
                 icon: "star.fill",
                 title: "Exclusive premium filters",
                 description: "Access to advanced AI models and effects"
@@ -159,7 +159,7 @@ struct FakePaywallView: View {
     private var productsSection: some View {
         HStack(spacing: 16) {
             // Weekly Product
-            FakePaywallProductCard(
+                        PreviewPaywallProductCard(
                 product: MockProduct(
                     id: "weekly_pro",
                     vendorProductId: "banana_weekly",
@@ -198,7 +198,7 @@ struct FakePaywallView: View {
             .accessibilityAddTraits(viewModel.selectedProduct?.id == "weekly_pro" ? .isSelected : [])
             
             // Yearly Product
-            FakePaywallProductCard(
+                        PreviewPaywallProductCard(
                 product: MockProduct(
                     id: "yearly_pro",
                     vendorProductId: "banana_yearly",
@@ -329,7 +329,7 @@ struct FakePaywallView: View {
 
 // MARK: - Benefit Row Component
 
-struct FakePaywallBenefitRow: View {
+struct PreviewPaywallBenefitRow: View {
     let icon: String
     let title: String
     let description: String
@@ -367,7 +367,7 @@ struct FakePaywallBenefitRow: View {
 
 // MARK: - Product Card Component
 
-struct FakePaywallProductCard: View {
+struct PreviewPaywallProductCard: View {
     let product: MockProduct
     let isSelected: Bool
     let shouldHighlight: Bool
@@ -458,17 +458,17 @@ struct FakePaywallProductCard: View {
 // MARK: - Preview
 
 #Preview("iPhone 14 Pro Max") {
-    FakePaywallView()
+    PreviewPaywallView()
         .environmentObject(ThemeManager())
 }
 
 #Preview("iPhone SE") {
-    FakePaywallView()
+    PreviewPaywallView()
         .environmentObject(ThemeManager())
 }
 
 #Preview("Dark Mode") {
-    FakePaywallView()
+    PreviewPaywallView()
         .environmentObject(ThemeManager())
         .preferredColorScheme(.dark)
 }

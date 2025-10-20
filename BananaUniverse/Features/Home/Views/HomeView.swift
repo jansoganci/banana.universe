@@ -60,7 +60,12 @@ struct HomeView: View {
             .navigationBarHidden(true)
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            if Config.useFakePaywall {
+                PreviewPaywallView()
+            } else {
+                // PaywallView() // Temporarily disabled for App Store submission
+                PreviewPaywallView()
+            }
         }
     }
     

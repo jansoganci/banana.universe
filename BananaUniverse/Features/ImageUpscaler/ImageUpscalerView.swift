@@ -266,7 +266,12 @@ struct ImageUpscalerView: View {
             ImagePicker(image: $selectedImage)
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            if Config.useFakePaywall {
+                PreviewPaywallView()
+            } else {
+                // PaywallView() // Temporarily disabled for App Store submission
+                PreviewPaywallView()
+            }
         }
     }
     
