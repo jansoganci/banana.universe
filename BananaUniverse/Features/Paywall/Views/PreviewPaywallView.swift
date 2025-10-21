@@ -416,8 +416,8 @@ struct PreviewPaywallProductCard: View {
                         
                         if let savings = product.savings {
                             Text(savings)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color.green)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(Color.red)
                         }
                     }
                     
