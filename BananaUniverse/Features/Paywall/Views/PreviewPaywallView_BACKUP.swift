@@ -1,7 +1,8 @@
 //
-//  PreviewPaywallView.swift
+//  PreviewPaywallView_BACKUP.swift
 //  BananaUniverse
 //
+//  BACKUP - Original paywall with both weekly and yearly
 //  Created by AI Assistant on 14.10.2025.
 //  Preview paywall for App Store submission - replaces Adapty paywall temporarily
 //
@@ -9,7 +10,7 @@
 import SwiftUI
 import StoreKit
 
-struct PreviewPaywallView: View {
+struct PreviewPaywallView_BACKUP: View {
     @StateObject private var storeKitService = StoreKitService.shared
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
@@ -73,7 +74,7 @@ struct PreviewPaywallView: View {
             .alert("Success!", isPresented: $storeKitService.shouldShowSuccessAlert) {
                 Button("OK", role: .cancel) {
                     storeKitService.dismissSuccessAlert()
-                    // REMOVED AUTO-DISMISS - Let user manually close paywall
+                    dismiss() // Dismiss paywall after successful purchase
                 }
             } message: {
                 Text(storeKitService.successAlertMessage)
@@ -98,8 +99,12 @@ struct PreviewPaywallView: View {
                 #if DEBUG
                 print("🔄 PaywallView: Premium status changed to \(isPremium)")
                 #endif
-                // REMOVED AUTO-DISMISS LOGIC - Let user manually close paywall
-                // Only log premium status changes for debugging
+                if isPremium {
+                    // Hide paywall when user becomes premium
+                    DispatchQueue.main.async {
+                        self.dismiss()
+                    }
+                }
             }
         }
     }
@@ -195,14 +200,14 @@ struct PreviewPaywallView: View {
     // MARK: - Products Section
     
     private var productsSection: some View {
-        VStack(spacing: 16) {
-            // Weekly Product - Only show weekly for now
+        HStack(spacing: 16) {
+            // Weekly Product
             if let weeklyProduct = storeKitService.weeklyProduct {
                 StoreKitProductCard(
                     product: weeklyProduct,
                     isSelected: selectedProduct?.id == weeklyProduct.id,
-                    shouldHighlight: true,
-                    shouldShowTrialBadge: true
+                    shouldHighlight: false,
+                    shouldShowTrialBadge: false
                 ) {
                     selectedProduct = weeklyProduct
                 }
@@ -211,9 +216,7 @@ struct PreviewPaywallView: View {
                 .accessibilityAddTraits(selectedProduct?.id == weeklyProduct.id ? .isSelected : [])
             }
             
-            // Yearly Product - Temporarily disabled for App Store submission
-            // Will be re-enabled after yearly subscription is added to App Store Connect
-            /*
+            // Yearly Product
             if let yearlyProduct = storeKitService.yearlyProduct {
                 StoreKitProductCard(
                     product: yearlyProduct,
@@ -227,64 +230,6 @@ struct PreviewPaywallView: View {
                 .accessibilityHint("Subscription option")
                 .accessibilityAddTraits(selectedProduct?.id == yearlyProduct.id ? .isSelected : [])
             }
-            */
-            
-            // Coming Soon Card for Yearly
-            VStack(spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Yearly Pro")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Color(hex: "1A202C"))
-                        
-                        Text("Best value - coming soon!")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                    
-                    // Coming Soon Badge
-                    Text("Coming Soon")
-                        .font(.system(size: 11, weight: .bold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange)
-                        .foregroundColor(.white)
-                        .cornerRadius(6)
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("$79.99 / year")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(Color(hex: "1A202C"))
-                        
-                        Text("Save 70%")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color.red)
-                    }
-                    
-                    Spacer()
-                }
-            }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-            )
-            .shadow(
-                color: .black.opacity(0.05),
-                radius: 8,
-                x: 0,
-                y: 4
-            )
-            .disabled(true)
         }
     }
     
@@ -435,7 +380,7 @@ struct PreviewPaywallView: View {
 
 // MARK: - Benefit Row Component
 
-struct PreviewPaywallBenefitRow: View {
+struct PreviewPaywallBenefitRow_BACKUP: View {
     let icon: String
     let title: String
     let description: String
@@ -473,7 +418,7 @@ struct PreviewPaywallBenefitRow: View {
 
 // MARK: - Product Card Component
 
-struct PreviewPaywallProductCard: View {
+struct PreviewPaywallProductCard_BACKUP: View {
     let product: MockProduct
     let isSelected: Bool
     let shouldHighlight: Bool
@@ -563,7 +508,7 @@ struct PreviewPaywallProductCard: View {
 
 // MARK: - StoreKit Product Card Component
 
-struct StoreKitProductCard: View {
+struct StoreKitProductCard_BACKUP: View {
     let product: Product
     let isSelected: Bool
     let shouldHighlight: Bool
@@ -653,7 +598,7 @@ struct StoreKitProductCard: View {
 
 // MARK: - Helper Methods
 
-extension PreviewPaywallView {
+extension PreviewPaywallView_BACKUP {
     private func showAlert(title: String, message: String) {
         alertTitle = title
         alertMessage = message
@@ -761,18 +706,17 @@ private enum ErrorType {
 // MARK: - Preview
 
 #Preview("iPhone 14 Pro Max") {
-    PreviewPaywallView()
+    PreviewPaywallView_BACKUP()
         .environmentObject(ThemeManager())
 }
 
 #Preview("iPhone SE") {
-    PreviewPaywallView()
+    PreviewPaywallView_BACKUP()
         .environmentObject(ThemeManager())
 }
 
 #Preview("Dark Mode") {
-    PreviewPaywallView()
+    PreviewPaywallView_BACKUP()
         .environmentObject(ThemeManager())
         .preferredColorScheme(.dark)
 }
-

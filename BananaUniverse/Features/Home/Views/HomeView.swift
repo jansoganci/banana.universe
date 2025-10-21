@@ -22,7 +22,7 @@ struct HomeView: View {
                 UnifiedHeaderBar(
                     title: "",
                     leftContent: .appLogo(32),
-                    rightContent: .getProButton({ 
+                    rightContent: creditManager.isPremiumUser ? nil : .getProButton({ 
                         showPaywall = true
                         // TODO: insert Adapty Paywall ID here - placement: home_get_pro
                     })
