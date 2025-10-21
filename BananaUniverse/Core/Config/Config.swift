@@ -29,9 +29,9 @@ struct Config {
     static let testPaywallPlacementId = "test_paywall_review" // Fake paywall for App Review testing only
     
     // MARK: - Privacy & Legal
-    static let privacyPolicyURL = "https://jansoganci.github.io/bananauniverse/privacy"
-    static let termsOfServiceURL = "https://jansoganci.github.io/bananauniverse/terms"
-    static let supportURL = "https://jansoganci.github.io/bananauniverse/support"
+    static let privacyPolicyURL = "https://jansoganci.github.io/banana.universe/privacy"
+    static let termsOfServiceURL = "https://jansoganci.github.io/banana.universe/terms"
+    static let supportURL = "https://jansoganci.github.io/banana.universe/support"
     
     // MARK: - Debug Logging
     static func debugLog(_ message: String, file: String = #file, function: String = #function) {

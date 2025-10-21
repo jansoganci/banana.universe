@@ -307,7 +307,9 @@ struct PreviewPaywallView: View {
             // Legal links
             HStack(spacing: 24) {
                 Button("Terms of Service") {
-                    // In a real app, this would open Terms of Service
+                    if let url = URL(string: Config.termsOfServiceURL) {
+                        UIApplication.shared.open(url)
+                    }
                 }
                 .font(.system(size: 12, weight: .regular))
                 .foregroundColor(DesignTokens.Text.link(themeManager.resolvedColorScheme))
