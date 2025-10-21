@@ -86,8 +86,8 @@ We implement fair usage policies to ensure all users can enjoy the app:
 
 ## Legal
 
-- [Privacy Policy](./privacy.md)
-- [Terms of Service](./terms.md)
+- [Privacy Policy](./privacy.html)
+- [Terms of Service](./terms.html)
 
 ---
 

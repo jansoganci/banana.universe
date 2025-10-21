@@ -245,8 +245,18 @@ struct ProfileView: View {
                             .background(Color.white.opacity(0.06))
                             .padding(.leading, 56)
                         
-                        SettingsRow(icon: "doc.text", title: "Terms & Privacy") {
+                        SettingsRow(icon: "hand.raised", title: "Privacy Policy") {
                             if let url = URL(string: Config.privacyPolicyURL) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.06))
+                            .padding(.leading, 56)
+                        
+                        SettingsRow(icon: "doc.text", title: "Terms of Service") {
+                            if let url = URL(string: Config.termsOfServiceURL) {
                                 UIApplication.shared.open(url)
                             }
                         }

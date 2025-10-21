@@ -381,12 +381,12 @@ enum ProcessingError: LocalizedError {
 **Description:** Privacy policy mentions AWS S3, not in PrivacyInfo.xcprivacy  
 **Files:**
 - `BananaUniverse/PrivacyInfo.xcprivacy`
-- `docs/legal/privacy.md`  
+- `docs/legal/privacy.html`  
 **Impact:** Privacy disclosure mismatch, potential rejection  
 **Time Estimate:** 30 minutes
 
 **What Needs to Be Fixed:**
-Update privacy.md to match actual data collection:
+Update privacy.html to match actual data collection:
 
 ```markdown
 ## Service Providers
@@ -406,7 +406,7 @@ Remove AWS S3 mention if not directly used (Supabase handles storage).
 **Verification Steps:**
 1. Review PrivacyInfo.xcprivacy data collection types
 2. Review actual network calls in code
-3. Update privacy.md to match exactly
+3. Update privacy.html to match exactly
 4. Remove any outdated service references
 5. Cross-reference with Apple's privacy requirements
 
@@ -464,8 +464,8 @@ Button(action: {
 
 **Description:** Email domain "pixelmage.com" doesn't match app branding  
 **Files:**
-- `docs/legal/privacy.md:40`
-- `docs/legal/terms.md:77`  
+- `docs/legal/privacy.html:40`
+- `docs/legal/terms.html:77`  
 **Impact:** Confusing branding, unprofessional appearance  
 **Time Estimate:** 15 minutes
 
@@ -503,7 +503,7 @@ Email: support@bananauniverse.com
 **Time Estimate:** 30 minutes
 
 **What Needs to Be Fixed:**
-1. Host privacy.md and terms.md on web server
+1. Host privacy.html and terms.html on web server
 2. Link buttons to hosted URLs
 
 ```swift
@@ -526,7 +526,7 @@ SettingsRow(icon: "doc.text", title: "Terms & Privacy") {
 - URLs functional and accessible
 
 **Verification Steps:**
-1. Host privacy.md and terms.md on web server
+1. Host privacy.html and terms.html on web server
 2. Add URLs to Config.swift
 3. Update ProfileView button action
 4. Build and launch app

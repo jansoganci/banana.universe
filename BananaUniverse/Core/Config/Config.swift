@@ -28,9 +28,9 @@ struct Config {
     // All paywall triggers now use PreviewPaywallView directly
     
     // MARK: - Privacy & Legal
-    static let privacyPolicyURL = "https://jansoganci.github.io/banana.universe/privacy"
-    static let termsOfServiceURL = "https://jansoganci.github.io/banana.universe/terms"
-    static let supportURL = "https://jansoganci.github.io/banana.universe/support"
+    static let privacyPolicyURL = "https://jansoganci.github.io/banana.universe/privacy.html"
+    static let termsOfServiceURL = "https://jansoganci.github.io/banana.universe/terms.html"
+    static let supportURL = "https://jansoganci.github.io/banana.universe/support.html"
     
     // MARK: - Debug Logging
     static func debugLog(_ message: String, file: String = #file, function: String = #function) {
