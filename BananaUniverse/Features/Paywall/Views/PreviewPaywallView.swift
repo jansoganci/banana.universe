@@ -164,7 +164,7 @@ struct PreviewPaywallView: View {
                     id: "weekly_pro",
                     vendorProductId: "banana_weekly",
                     localizedTitle: "Weekly Pro",
-                    localizedDescription: "Perfect for trying out premium features",
+                    localizedDescription: "Try Premium",
                     localizedPrice: "$4.99 / week",
                     price: NSDecimalNumber(string: "4.99"),
                     currencyCode: "USD",
@@ -181,7 +181,7 @@ struct PreviewPaywallView: View {
                     id: "weekly_pro",
                     vendorProductId: "banana_weekly",
                     localizedTitle: "Weekly Pro",
-                    localizedDescription: "Perfect for trying out premium features",
+                    localizedDescription: "Try Premium",
                     localizedPrice: "$4.99 / week",
                     price: NSDecimalNumber(string: "4.99"),
                     currencyCode: "USD",
@@ -203,7 +203,7 @@ struct PreviewPaywallView: View {
                     id: "yearly_pro",
                     vendorProductId: "banana_yearly",
                     localizedTitle: "Yearly Pro",
-                    localizedDescription: "Best value - save 70% compared to weekly",
+                    localizedDescription: "Best Value",
                     localizedPrice: "$79.99 / year",
                     price: NSDecimalNumber(string: "79.99"),
                     currencyCode: "USD",
@@ -220,7 +220,7 @@ struct PreviewPaywallView: View {
                     id: "yearly_pro",
                     vendorProductId: "banana_yearly",
                     localizedTitle: "Yearly Pro",
-                    localizedDescription: "Best value - save 70% compared to weekly",
+                    localizedDescription: "Best Value",
                     localizedPrice: "$79.99 / year",
                     price: NSDecimalNumber(string: "79.99"),
                     currencyCode: "USD",
@@ -380,7 +380,18 @@ struct PreviewPaywallProductCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
-                // Header with title and badge
+                // Trial badge at top center
+                if shouldShowTrialBadge {
+                    Text("3-Day Free Trial")
+                        .font(.system(size: 11, weight: .bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                }
+                
+                // Header with title
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.localizedTitle)
@@ -394,17 +405,6 @@ struct PreviewPaywallProductCard: View {
                     }
                     
                     Spacer()
-                    
-                    // Trial badge
-                    if shouldShowTrialBadge {
-                        Text("3-Day Free Trial")
-                            .font(.system(size: 11, weight: .bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(6)
-                    }
                 }
                 
                 // Price and savings
