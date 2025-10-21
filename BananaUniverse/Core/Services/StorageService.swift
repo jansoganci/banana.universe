@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 import Photos
 import PhotosUI
+import CoreImage
 
 @MainActor
 class StorageService: ObservableObject {
@@ -78,26 +79,111 @@ class StorageService: ObservableObject {
     
     // MARK: - Image Processing
     func compressImage(_ image: UIImage, maxSize: CGSize = CGSize(width: 1024, height: 1024)) -> UIImage {
-        let size = image.size
+        var tempImage: UIImage?
+        var tempData: Data?
         
-        // Calculate scaling factor
-        let widthScale = maxSize.width / size.width
-        let heightScale = maxSize.height / size.height
-        let scale = min(widthScale, heightScale, 1.0)
-        
-        // Skip if no scaling needed
-        if scale >= 1.0 {
-            return image
+        defer {
+            tempImage = nil
+            tempData = nil
+            #if DEBUG
+            print("💾 Image compression completed, memory released successfully")
+            #endif
         }
         
-        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        return autoreleasepool {
+            guard let cgImage = image.cgImage else { return image }
+            
+            // Create Core Image context for efficient GPU-based processing
+            let ciImage = CIImage(cgImage: cgImage)
+            let context = CIContext(options: [.useSoftwareRenderer: false])
+            defer {
+                context.clearCaches()
+                #if DEBUG
+                print("🧹 Core Image caches cleared after compression")
+                #endif
+            }
+            
+            // Calculate scaling factor
+            let widthScale = maxSize.width / CGFloat(cgImage.width)
+            let heightScale = maxSize.height / CGFloat(cgImage.height)
+            let scale = min(widthScale, heightScale, 1.0)
+            
+            // Skip if no scaling needed
+            if scale >= 1.0 {
+                return image
+            }
+            
+            // Resize using Core Image instead of UIGraphics
+            let transform = CGAffineTransform(scaleX: scale, y: scale)
+            let resized = ciImage.transformed(by: transform)
+            
+            // Render the resized image
+            if let outputCGImage = context.createCGImage(resized, from: resized.extent) {
+                tempImage = UIImage(cgImage: outputCGImage)
+                #if DEBUG
+                print("✅ Image compressed efficiently using Core Image")
+                #endif
+                return tempImage ?? image
+            }
+            
+            return image
+        }
+    }
+    
+    // MARK: - Optimized Image Compression with Quality Control
+    func compressImageToData(_ image: UIImage, maxDimension: CGFloat = 1024, quality: CGFloat = 0.8) -> Data? {
+        var tempImage: UIImage?
+        var tempData: Data?
         
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-        defer { UIGraphicsEndImageContext() }
+        defer {
+            tempImage = nil
+            tempData = nil
+            #if DEBUG
+            print("💾 Image compression to data completed, memory released successfully")
+            #endif
+        }
         
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        
-        return UIGraphicsGetImageFromCurrentImageContext() ?? image
+        return autoreleasepool {
+            guard let cgImage = image.cgImage else { return nil }
+            
+            // Create Core Image context for efficient GPU-based processing
+            let ciImage = CIImage(cgImage: cgImage)
+            let context = CIContext(options: [.useSoftwareRenderer: false])
+            defer {
+                context.clearCaches()
+                #if DEBUG
+                print("🧹 Core Image caches cleared after data compression")
+                #endif
+            }
+            
+            // Resize using Core Image instead of UIGraphics
+            let scale = min(maxDimension / CGFloat(cgImage.width), maxDimension / CGFloat(cgImage.height))
+            let transform = CGAffineTransform(scaleX: scale, y: scale)
+            let resized = ciImage.transformed(by: transform)
+            
+            // Render the resized image and compress it once
+            if let outputCGImage = context.createCGImage(resized, from: resized.extent) {
+                tempImage = UIImage(cgImage: outputCGImage)
+                tempData = tempImage?.jpegData(compressionQuality: quality)
+                #if DEBUG
+                print("✅ Image compressed to data efficiently using Core Image")
+                #endif
+                return tempData
+            }
+            return nil
+        }
+    }
+    
+    // MARK: - Memory Management
+    func cleanupTemporaryImageData() {
+        DispatchQueue.global(qos: .background).async {
+            autoreleasepool {
+                URLCache.shared.removeAllCachedResponses()
+                #if DEBUG
+                print("🧽 Background image cache cleanup complete")
+                #endif
+            }
+        }
     }
     
     // MARK: - Share Image

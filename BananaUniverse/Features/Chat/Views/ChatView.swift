@@ -32,12 +32,7 @@ struct ChatView: View {
             viewModel.handleImageItemSelection()
         }
         .sheet(isPresented: $viewModel.showingPaywall) {
-            if Config.useFakePaywall {
-                PreviewPaywallView()
-            } else {
-                // PaywallView() // Temporarily disabled for App Store submission
-                PreviewPaywallView()
-            }
+            PreviewPaywallView()
         }
         .sheet(isPresented: $viewModel.showingLogin) {
             LoginView()

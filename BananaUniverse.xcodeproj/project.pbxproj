@@ -18,6 +18,8 @@
 
 /* Begin PBXFileReference section */
 		C5B91B602E9C4E54000CA05D /* BananaUniverse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BananaUniverse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C5B91CC82E9D6E00000CA05D /* BananaUniverse.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "BananaUniverse.storekit"; sourceTree = "<group>"; };
+		C5B91CC92E9D6E01000CA05D /* BananaUniverseTestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text.xctestplan; path = "BananaUniverseTestPlan.xctestplan"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -50,6 +52,8 @@
 			isa = PBXGroup;
 			children = (
 				C5B91B622E9C4E54000CA05D /* BananaUniverse */,
+				C5B91CC82E9D6E00000CA05D /* BananaUniverse.storekit */,
+				C5B91CC92E9D6E01000CA05D /* BananaUniverseTestPlan.xctestplan */,
 				C5B91B612E9C4E54000CA05D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -210,6 +214,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save your edited images to your Photos library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library to let you select and edit your images.";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -269,6 +274,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save your edited images to your Photos library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library to let you select and edit your images.";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -295,6 +301,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				INFOPLIST_KEY_LSApplicationQueriesSchemes = appleid;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save your edited images to your Photos library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library to let you select and edit your images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -333,6 +340,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				INFOPLIST_KEY_LSApplicationQueriesSchemes = appleid;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save your edited images to your Photos library.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library to let you select and edit your images.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

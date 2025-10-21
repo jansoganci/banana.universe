@@ -85,38 +85,6 @@
         "trial": "3-Day Free Trial",
         "bestValue": "BEST VALUE"
       }
-    },
-    "tr": {
-      "title": "Tam Gücü Aç",
-      "subtitle": "Tüm premium özelliklere sınırsız erişim elde et",
-      "benefits": [
-        {
-          "icon": "sparkles",
-          "title": "Sınırsız AI görsel düzenleme",
-          "description": "İstediğiniz kadar görsel işleyin"
-        },
-        {
-          "icon": "bolt.fill",
-          "title": "Hızlı işleme önceliği",
-          "description": "Kuyruğu atlayın ve anında sonuç alın"
-        },
-        {
-          "icon": "star.fill",
-          "title": "Özel premium filtreler",
-          "description": "Gelişmiş AI modelleri ve efektlere erişim"
-        }
-      ],
-      "cta": "Premium'u Aç",
-      "ctaLoading": "İşleniyor...",
-      "footer": {
-        "terms": "Hizmet Şartları",
-        "privacy": "Gizlilik Politikası",
-        "restore": "Satın Alımları Geri Yükle"
-      },
-      "badges": {
-        "trial": "3 Günlük Ücretsiz Deneme",
-        "bestValue": "EN İYİ DEĞER"
-      }
     }
   },
   "analytics": {

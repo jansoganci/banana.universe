@@ -1,0 +1,98 @@
+{
+  "configurations" : [
+    {
+      "id" : "C5B91CC92E9D6E01000CA05D",
+      "name" : "Configuration 1",
+      "options" : {
+        "commandLineArgumentEntries" : [
+
+        ],
+        "environmentVariableEntries" : [
+
+        ],
+        "language" : "en",
+        "region" : "US",
+        "storeKitConfigurationFileReference" : {
+          "referenceType" : "absolute",
+          "filePath" : "BananaUniverse.storekit"
+        }
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+
+    ],
+    "environmentVariableEntries" : [
+
+    ],
+    "language" : "en",
+    "region" : "US"
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:BananaUniverse.xcodeproj",
+        "identifier" : "C5B91B5F2E9C4E54000CA05D",
+        "name" : "BananaUniverse"
+      },
+      "parallelizable" : true,
+      "skippedTests" : [
+
+      ],
+      "selectedTests" : [
+
+      ]
+    },
+    {
+      "target" : {
+        "containerPath" : "container:BananaUniverse.xcodeproj",
+        "identifier" : "C5B91CC92E9D6E01000CA05D",
+        "name" : "BananaUniverseTests"
+      },
+      "parallelizable" : true,
+      "skippedTests" : [
+
+      ],
+      "selectedTests" : [
+        {
+          "identifier" : "StoreKitServiceTests/testIsUserCancelledError_WithCancelledDescription",
+          "name" : "testIsUserCancelledError_WithCancelledDescription"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testIsASDErrorDomain509_WithCorrectDomainAndCode",
+          "name" : "testIsASDErrorDomain509_WithCorrectDomainAndCode"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testSuccessAlertState_InitialState",
+          "name" : "testSuccessAlertState_InitialState"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testDismissSuccessAlert",
+          "name" : "testDismissSuccessAlert"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testProductLoading_InitialState",
+          "name" : "testProductLoading_InitialState"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testPremiumStatus_InitialState",
+          "name" : "testPremiumStatus_InitialState"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testProductHelpers",
+          "name" : "testProductHelpers"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testErrorHandling_UserCancelled",
+          "name" : "testErrorHandling_UserCancelled"
+        },
+        {
+          "identifier" : "StoreKitServiceTests/testErrorHandling_ASDErrorDomain509",
+          "name" : "testErrorHandling_ASDErrorDomain509"
+        }
+      ]
+    }
+  ],
+  "version" : 1
+}

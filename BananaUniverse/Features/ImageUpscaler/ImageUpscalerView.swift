@@ -266,12 +266,7 @@ struct ImageUpscalerView: View {
             ImagePicker(image: $selectedImage)
         }
         .sheet(isPresented: $showPaywall) {
-            if Config.useFakePaywall {
-                PreviewPaywallView()
-            } else {
-                // PaywallView() // Temporarily disabled for App Store submission
-                PreviewPaywallView()
-            }
+            PreviewPaywallView()
         }
     }
     
@@ -303,7 +298,7 @@ struct ImageUpscalerView: View {
             return
         }
         
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+        guard let imageData = StorageService.shared.compressImageToData(image, maxDimension: 1024, quality: 0.8) else {
             errorMessage = "Failed to process image data"
             return
         }
@@ -364,6 +359,9 @@ struct ImageUpscalerView: View {
             errorMessage = appError.errorDescription ?? "An unexpected error occurred"
             debugInfo += "\nUnexpected error: \(appError)"
         }
+        
+        // Clean up temporary image data after processing
+        StorageService.shared.cleanupTemporaryImageData()
         
         isProcessing = false
     }

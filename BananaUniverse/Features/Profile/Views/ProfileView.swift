@@ -14,27 +14,15 @@ struct ProfileView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showPaywall = false
     @State private var showSignIn = false
+    @State private var showAI_Disclosure = false
     @State private var authStateRefreshTrigger = false
     @Environment(\.openURL) var openURL
-    
-    // Debug: Track auth state changes
-    private var authDebugInfo: String {
-        "Auth: \(authService.isAuthenticated ? "✅" : "❌") | User: \(authService.currentUser?.email ?? "nil")"
-    }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Header Bar
                 UnifiedHeaderBar(title: "Profile")
-                
-                // Debug Info (temporary)
-                if Config.isDebug {
-                    Text(authDebugInfo)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                }
                 
                 // Main Content
                 ScrollView {
@@ -47,15 +35,13 @@ struct ProfileView: View {
             .navigationBarHidden(true)
         }
         .sheet(isPresented: $showPaywall) {
-            if Config.useFakePaywall {
-                PreviewPaywallView()
-            } else {
-                // PaywallView() // Temporarily disabled for App Store submission
-                PreviewPaywallView()
-            }
+            PreviewPaywallView()
         }
         .sheet(isPresented: $showSignIn) {
             SignInView()
+        }
+        .sheet(isPresented: $showAI_Disclosure) {
+            AI_Disclosure_View()
         }
         .onReceive(authService.$userState) { newState in
             // Force UI refresh by toggling the trigger
@@ -63,6 +49,12 @@ struct ProfileView: View {
             Task {
                 await viewModel.onAuthStateChanged(newState)
             }
+        }
+        .onReceive(viewModel.$isPremiumUser) { newValue in
+            #if DEBUG
+            print("🔄 ProfileView: Premium status changed to \(newValue)")
+            #endif
+            // UI will automatically update due to @Published property
         }
         .alert("Restore Purchases", isPresented: $viewModel.showAlert) {
             Button("OK", role: .cancel) { }
@@ -91,22 +83,36 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             // Pro Card
             ProCard(
-                isProActive: viewModel.isPRO,
+                isProActive: viewModel.isPremiumUser,
                 features: [
                     "Unlimited edits",
                     "Fast processing",
                     "No watermark"
                 ],
+                subscriptionStatusText: viewModel.getSubscriptionStatusText(),
+                isLoadingSubscription: viewModel.isLoadingSubscription,
                 onUpgradeTap: {
                     showPaywall = true
                     // TODO: insert Adapty Paywall ID here - placement: profile_upgrade
                 },
                 onManageTap: {
                     viewModel.openManageSubscription()
+                },
+                onRefreshTap: {
+                    Task {
+                        await viewModel.refreshSubscriptionDetails()
+                    }
                 }
             )
             .padding(.horizontal, DesignTokens.Spacing.md)
             .padding(.top, DesignTokens.Spacing.lg)
+            
+            // Premium Status Banner (for premium users)
+            if viewModel.isPremiumUser {
+                PremiumStatusBanner()
+                    .padding(.horizontal, DesignTokens.Spacing.md)
+                    .padding(.top, DesignTokens.Spacing.sm)
+            }
             
             // Sign In or Create Account Button (for anonymous users)
             if !authService.isAuthenticated {
@@ -230,7 +236,7 @@ struct ProfileView: View {
                     
                     VStack(spacing: 0) {
                         SettingsRow(icon: "questionmark.circle", title: "Help & Support") {
-                            if let url = URL(string: "https://github.com/jansoganci/bananauniverse/blob/main/docs/legal/support.md") {
+                            if let url = URL(string: Config.supportURL) {
                                 UIApplication.shared.open(url)
                             }
                         }
@@ -249,10 +255,18 @@ struct ProfileView: View {
                             .background(Color.white.opacity(0.06))
                             .padding(.leading, 56)
                         
-                        // Restore Purchases Button (only for non-PRO users)
-                        if !viewModel.isPRO {
-                            SettingsRow(icon: "arrow.clockwise", title: "Restore Purchases") {
-                                viewModel.restorePurchases()
+                        SettingsRow(icon: "brain.head.profile", title: "AI Service Disclosure") {
+                            showAI_Disclosure = true
+                        }
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.06))
+                            .padding(.leading, 56)
+                        
+                        // Restore Purchases Button (always visible)
+                        SettingsRow(icon: "arrow.clockwise", title: "Restore Purchases") {
+                            Task {
+                                await viewModel.restorePurchases()
                             }
                         }
                         
@@ -410,8 +424,11 @@ struct ProfileView: View {
 struct ProCard: View {
     let isProActive: Bool
     let features: [String]
+    let subscriptionStatusText: String
+    let isLoadingSubscription: Bool
     let onUpgradeTap: () -> Void
     let onManageTap: () -> Void
+    let onRefreshTap: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -465,6 +482,32 @@ struct ProCard: View {
                         .background(Color.white.opacity(0.2))
                         .cornerRadius(12)
                 }
+                
+                // Subscription Status Display
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(subscriptionStatusText)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.leading)
+                        
+                        Spacer()
+                        
+                        Button(action: onRefreshTap) {
+                            if isLoadingSubscription {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                        .disabled(isLoadingSubscription)
+                    }
+                }
+                .padding(.top, 8)
             }
         }
         .padding(20)
@@ -518,6 +561,35 @@ struct SettingsRow: View {
             .frame(height: 50)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Premium Status Banner Component
+struct PremiumStatusBanner: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "crown.fill")
+                .font(.system(size: 16))
+                .foregroundColor(DesignTokens.Brand.gold)
+            
+            Text("You're Premium! Enjoy unlimited access.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(DesignTokens.Brand.gold.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(DesignTokens.Brand.gold.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

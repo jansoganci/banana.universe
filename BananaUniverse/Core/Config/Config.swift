@@ -25,8 +25,7 @@ struct Config {
     #endif
     
     // MARK: - Paywall Configuration
-    static let useFakePaywall = true // Enable PreviewPaywall for App Review
-    static let testPaywallPlacementId = "test_paywall_review" // Fake paywall for App Review testing only
+    // All paywall triggers now use PreviewPaywallView directly
     
     // MARK: - Privacy & Legal
     static let privacyPolicyURL = "https://jansoganci.github.io/banana.universe/privacy"

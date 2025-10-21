@@ -234,9 +234,8 @@ class ChatViewModel: ObservableObject {
         )
         
         do {
-            // Step 1: Compress image
-            let compressedImage = storageService.compressImage(image)
-            guard let imageData = compressedImage.jpegData(compressionQuality: 0.8) else {
+            // Step 1: Compress image efficiently using Core Image
+            guard let imageData = storageService.compressImageToData(image, maxDimension: 1024, quality: 0.8) else {
                 throw ChatError.processingFailed
             }
             
@@ -337,6 +336,9 @@ class ChatViewModel: ObservableObject {
                 addErrorMessage(content: "❌ Processing failed: \(error.localizedDescription)")
             }
         }
+        
+        // Clean up temporary image data after processing
+        storageService.cleanupTemporaryImageData()
         
         // Reset after a delay
         Task {

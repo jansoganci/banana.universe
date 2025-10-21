@@ -15,11 +15,11 @@ struct QuotaDisplayView: View {
     let action: (() -> Void)?
     
     init(
-        creditManager: HybridCreditManager = HybridCreditManager.shared,
+        creditManager: HybridCreditManager? = nil,
         style: QuotaDisplayStyle = .compact,
         action: (() -> Void)? = nil
     ) {
-        self.creditManager = creditManager
+        self.creditManager = creditManager ?? HybridCreditManager.shared
         self.style = style
         self.action = action
     }

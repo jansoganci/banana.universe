@@ -74,15 +74,15 @@ class LibraryViewModel: ObservableObject {
     }
     
     init(
-        supabaseService: SupabaseService = .shared,
-        authService: HybridAuthService = .shared,
-        storageService: StorageService = .shared,
-        creditManager: HybridCreditManager = .shared
+        supabaseService: SupabaseService? = nil,
+        authService: HybridAuthService? = nil,
+        storageService: StorageService? = nil,
+        creditManager: HybridCreditManager? = nil
     ) {
-        self.supabaseService = supabaseService
-        self.authService = authService
-        self.storageService = storageService
-        self.creditManager = creditManager
+        self.supabaseService = supabaseService ?? SupabaseService.shared
+        self.authService = authService ?? HybridAuthService.shared
+        self.storageService = storageService ?? StorageService.shared
+        self.creditManager = creditManager ?? HybridCreditManager.shared
         
         // Configure image cache
         imageCache.countLimit = 50
@@ -94,7 +94,9 @@ class LibraryViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.clearImageCache()
+            Task { @MainActor in
+                self?.clearImageCache()
+            }
         }
     }
     

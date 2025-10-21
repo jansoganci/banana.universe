@@ -8,6 +8,7 @@
 import Foundation
 import Supabase
 import Combine
+import UIKit
 // import Adapty
 
 /// Manages credits for both anonymous and authenticated users
@@ -40,6 +41,9 @@ class HybridCreditManager: ObservableObject {
     private let lastQuotaDateKey = "last_quota_date_v1"
     private let premiumStatusKey = "premium_status_v1"
     
+    // Subscription check caching
+    private var lastSubscriptionCheck: Date?
+    
     private let supabase: SupabaseService
     
     private init() {
@@ -48,6 +52,7 @@ class HybridCreditManager: ObservableObject {
         loadCredits()
         loadDailyQuota()
         updatePremiumStatus()
+        scheduleSubscriptionRefresh()
     }
     
     // MARK: - User State Management
@@ -99,16 +104,39 @@ class HybridCreditManager: ObservableObject {
     }
     
     func canProcessImage() -> Bool {
-        // Check credits first
-        guard credits > 0 else { return false }
+        #if DEBUG
+        print("🔍 canProcessImage() - Starting check")
+        print("🔍 isPremiumUser: \(isPremiumUser)")
+        #endif
         
-        // Check premium status - premium users bypass quota
+        // Check premium status FIRST - premium users bypass all limits
         if isPremiumUser {
+            #if DEBUG
+            print("✅ Premium user detected - bypassing all limits")
+            #endif
             return true
         }
         
+        #if DEBUG
+        print("🔍 Non-premium user - checking credits and quota")
+        print("🔍 Credits: \(credits), Daily quota: \(dailyQuotaUsed)/\(dailyQuotaLimit)")
+        #endif
+        
+        // Check credits for non-premium users
+        guard credits > 0 else { 
+            #if DEBUG
+            print("❌ Insufficient credits: \(credits)")
+            #endif
+            return false 
+        }
+        
         // Check daily quota for non-premium users
-        return dailyQuotaUsed < dailyQuotaLimit
+        let quotaCheck = dailyQuotaUsed < dailyQuotaLimit
+        #if DEBUG
+        print("🔍 Quota check result: \(quotaCheck)")
+        #endif
+        
+        return quotaCheck
     }
     
     func spendCredit() async throws -> Bool {
@@ -214,23 +242,91 @@ class HybridCreditManager: ObservableObject {
     // MARK: - Premium User Integration
     
     private func updatePremiumStatus() {
-        // Mock premium status - always false for App Review
-        let newPremiumStatus = false // AdaptyService.shared.isProUser
-        if isPremiumUser != newPremiumStatus {
-            isPremiumUser = newPremiumStatus
-            saveDailyQuota()
-            
+        // Use StoreKit 2 to check subscription status
+        Task {
+            let hasActiveSubscription = await StoreKitService.shared.hasActiveSubscription()
+            if isPremiumUser != hasActiveSubscription {
+                isPremiumUser = hasActiveSubscription
+                UserDefaults.standard.set(isPremiumUser, forKey: premiumStatusKey)
+                saveDailyQuota()
+                objectWillChange.send()
+                #if DEBUG
+                print("🔄 Premium status updated on init: \(isPremiumUser)")
+                #endif
+            }
         }
     }
     
-    private func refreshPremiumStatus() async {
+    @MainActor
+    func refreshPremiumStatus() async {
+        // Check if we've already checked subscription status within the last 60 seconds
+        if let lastCheck = lastSubscriptionCheck,
+           Date().timeIntervalSince(lastCheck) < 60 {
+            #if DEBUG
+            print("🟡 Skipping redundant subscription check (cached within 60s)")
+            #endif
+            return
+        }
+        lastSubscriptionCheck = Date()
+        
+        // Use StoreKit 2 to refresh subscription status
+        await StoreKitService.shared.updateSubscriptionStatus()
+        
+        // Update premium status and handle expiration gracefully
+        let newPremiumStatus = StoreKitService.shared.isPremiumUser
+        if isPremiumUser != newPremiumStatus {
+            isPremiumUser = newPremiumStatus
+            UserDefaults.standard.set(isPremiumUser, forKey: premiumStatusKey)
+            #if DEBUG
+            print("🔄 Premium status changed: \(isPremiumUser)")
+            #endif
+        }
+        
+        saveDailyQuota()
+        objectWillChange.send()
+        #if DEBUG
+        print("🔄 Premium status refreshed after purchase")
+        #endif
+    }
+    
+    @MainActor
+    func refreshSubscriptionInBackground() async {
+        // Check if we've already checked subscription status within the last 60 seconds
+        if let lastCheck = lastSubscriptionCheck,
+           Date().timeIntervalSince(lastCheck) < 60 {
+            #if DEBUG
+            print("🟡 Skipping redundant background subscription check (cached within 60s)")
+            #endif
+            return
+        }
+        lastSubscriptionCheck = Date()
+        
         do {
-            // Mock restore - always succeeds
-            // _ = try await AdaptyService.shared.restorePurchases()
-            updatePremiumStatus()
+            await StoreKitService.shared.updateSubscriptionStatus()
+            isPremiumUser = StoreKitService.shared.isPremiumUser
+            UserDefaults.standard.set(isPremiumUser, forKey: premiumStatusKey)
+            objectWillChange.send()
+            #if DEBUG
+            print("🔄 Background subscription refresh completed: \(isPremiumUser)")
+            #endif
         } catch {
-            // Fallback to cached status
-            updatePremiumStatus()
+            #if DEBUG
+            print("⚠️ Background subscription refresh failed: \(error.localizedDescription)")
+            #endif
+        }
+    }
+    
+    // MARK: - Background Refresh Support
+    
+    func scheduleSubscriptionRefresh() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task {
+                await self.refreshSubscriptionInBackground()
+            }
         }
     }
     
@@ -238,14 +334,14 @@ class HybridCreditManager: ObservableObject {
     
     var remainingQuota: Int {
         if isPremiumUser {
-            return credits // Premium users have unlimited quota
+            return Int.max  // effectively unlimited
         }
         return max(0, dailyQuotaLimit - dailyQuotaUsed)
     }
     
     var hasQuotaLeft: Bool {
         if isPremiumUser {
-            return credits > 0 // Premium users only limited by credits
+            return true  // Premium users always have quota
         }
         return remainingQuota > 0
     }
@@ -591,3 +687,4 @@ enum HybridCreditError: LocalizedError {
         }
     }
 }
+
