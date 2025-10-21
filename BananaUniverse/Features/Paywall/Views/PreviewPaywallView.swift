@@ -351,11 +351,11 @@ struct PreviewPaywallBenefitRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                    .foregroundColor(Color(hex: "1A202C"))
                 
                 Text(description)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(DesignTokens.Text.secondary(themeManager.resolvedColorScheme))
+                    .foregroundColor(Color(hex: "2D3748"))
                     .lineLimit(2)
             }
             
@@ -383,7 +383,7 @@ struct PreviewPaywallProductCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.localizedTitle)
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                            .foregroundColor(Color(hex: "1A202C"))
                         
                         Text(product.localizedDescription)
                             .font(.system(size: 13, weight: .medium))
@@ -410,7 +410,7 @@ struct PreviewPaywallProductCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(product.localizedPrice)
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(DesignTokens.Text.primary(themeManager.resolvedColorScheme))
+                            .foregroundColor(Color(hex: "1A202C"))
                         
                         if let savings = product.savings {
                             Text(savings)
